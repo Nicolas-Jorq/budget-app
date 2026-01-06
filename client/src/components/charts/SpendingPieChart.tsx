@@ -19,7 +19,7 @@ const COLORS = [
 export default function SpendingPieChart({ data }: SpendingPieChartProps) {
   if (data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
         No spending data yet
       </div>
     )

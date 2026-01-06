@@ -66,7 +66,7 @@ export default function Budgets() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Budgets</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Budgets</h1>
         <button
           onClick={handleCreate}
           className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
@@ -76,8 +76,8 @@ export default function Budgets() {
       </div>
 
       {budgets.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500 mb-4">No budgets yet. Create your first budget to get started!</p>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">No budgets yet. Create your first budget to get started!</p>
           <button
             onClick={handleCreate}
             className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"

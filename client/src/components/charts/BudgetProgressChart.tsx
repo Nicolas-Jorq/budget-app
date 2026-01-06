@@ -11,15 +11,15 @@ function getProgressColor(percentage: number): string {
 }
 
 function getProgressBgColor(percentage: number): string {
-  if (percentage >= 90) return 'bg-red-100'
-  if (percentage >= 70) return 'bg-yellow-100'
-  return 'bg-green-100'
+  if (percentage >= 90) return 'bg-red-100 dark:bg-red-900/30'
+  if (percentage >= 70) return 'bg-yellow-100 dark:bg-yellow-900/30'
+  return 'bg-green-100 dark:bg-green-900/30'
 }
 
 export default function BudgetProgressChart({ data }: BudgetProgressChartProps) {
   if (data.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-gray-500 dark:text-gray-400 py-8">
         No budgets created yet
       </div>
     )
@@ -35,13 +35,13 @@ export default function BudgetProgressChart({ data }: BudgetProgressChartProps) 
           <div key={budget.id} className="space-y-2">
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-medium text-gray-900">{budget.name}</span>
-                <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span className="font-medium text-gray-900 dark:text-white">{budget.name}</span>
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                   {budget.category}
                 </span>
               </div>
               <div className="text-right">
-                <span className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-600'}`}>
+                <span className={`text-sm font-medium ${isOverBudget ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
                   ${budget.spent.toLocaleString()} / ${budget.limit.toLocaleString()}
                 </span>
               </div>
@@ -65,9 +65,9 @@ export default function BudgetProgressChart({ data }: BudgetProgressChartProps) 
               )}
             </div>
 
-            <div className="flex justify-between text-xs text-gray-500">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>{budget.percentage}% used</span>
-              <span className={isOverBudget ? 'text-red-600 font-medium' : ''}>
+              <span className={isOverBudget ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
                 {isOverBudget
                   ? `$${Math.abs(remaining).toLocaleString()} over`
                   : `$${remaining.toLocaleString()} remaining`}

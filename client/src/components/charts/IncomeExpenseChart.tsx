@@ -8,7 +8,7 @@ interface IncomeExpenseChartProps {
 export default function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   if (data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
         No data for the last 6 months
       </div>
     )

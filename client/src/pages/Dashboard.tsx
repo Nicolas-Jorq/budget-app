@@ -55,12 +55,12 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-lg shadow p-5">
+          <div key={stat.label} className="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
             <div className="flex items-center">
               <div className={`${stat.color} p-3 rounded-lg`}>
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,8 +68,8 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div className="ml-4">
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
                   ${stat.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -81,55 +81,55 @@ export default function Dashboard() {
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Spending by Category */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Spending by Category</h2>
           <SpendingPieChart data={chartData?.spendingByCategory ?? []} />
         </div>
 
         {/* Income vs Expenses */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Income vs Expenses</h2>
-          <p className="text-sm text-gray-500 mb-2">Last 6 months</p>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Income vs Expenses</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Last 6 months</p>
           <IncomeExpenseChart data={chartData?.monthlyComparison ?? []} />
         </div>
       </div>
 
       {/* Spending Trend */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Daily Spending This Month</h2>
-        <p className="text-sm text-gray-500 mb-4">Track your daily expenses</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Daily Spending This Month</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Track your daily expenses</p>
         <SpendingTrendChart data={chartData?.dailySpending ?? []} />
       </div>
 
       {/* Budget Progress & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Budget Progress */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Budget Progress</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Budget Progress</h2>
           <BudgetProgressChart data={chartData?.budgetProgress ?? []} />
         </div>
 
         {/* Recent Transactions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Transactions</h2>
           {chartData?.recentTransactions && chartData.recentTransactions.length > 0 ? (
             <div className="space-y-3">
               {chartData.recentTransactions.map((t) => (
-                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
                   <div>
-                    <p className="font-medium text-gray-900">{t.description}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-gray-900 dark:text-white">{t.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {t.category} • {new Date(t.date).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`font-semibold ${t.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No recent transactions</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No recent transactions</p>
           )}
         </div>
       </div>
