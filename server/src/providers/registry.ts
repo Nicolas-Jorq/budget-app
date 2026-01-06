@@ -52,6 +52,35 @@ export const REAL_ESTATE_PROVIDERS = {
   },
 
   /**
+   * SimplyRETS Demo Provider (Recommended)
+   *
+   * NO API KEY REQUIRED! Uses demo credentials.
+   * Real MLS-style property data for testing.
+   *
+   * Setup:
+   * Just set REAL_ESTATE_PROVIDER=simplyrets in .env
+   *
+   * Endpoints:
+   * - Base URL: https://api.simplyrets.com
+   * - GET /properties - Search properties
+   * - GET /properties/{mlsId} - Get property details
+   *
+   * Auth: Basic auth with demo:demo credentials (built-in)
+   *
+   * Rate Limits: Unlimited for demo data
+   */
+  simplyrets: {
+    name: 'SimplyRETS Demo',
+    envKeys: [], // No API key needed!
+    baseUrl: 'https://api.simplyrets.com',
+    freeLimit: Infinity,
+    endpoints: {
+      search: '/properties',
+      property: '/properties/{mlsId}',
+    },
+  },
+
+  /**
    * Mock Provider (for testing)
    *
    * No setup required. Returns fake data.
@@ -199,6 +228,10 @@ export async function createRealEstateProvider(): Promise<RealEstateProvider> {
     case 'rapidapi_zillow': {
       const { RapidAPIZillowProvider } = await import('./real-estate/rapidapi-zillow.js')
       return new RapidAPIZillowProvider()
+    }
+    case 'simplyrets': {
+      const { SimplyRetsProvider } = await import('./real-estate/simplyrets.js')
+      return new SimplyRetsProvider()
     }
     case 'mock':
     default: {
