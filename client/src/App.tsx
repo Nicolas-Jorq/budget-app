@@ -13,28 +13,65 @@
  * @module App
  */
 
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { queryClient } from './lib/queryClient'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ToastProvider } from './context/ToastContext'
 import { ModuleProvider } from './modules/core'
+import { APP_CONFIG } from './config/app'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
+
+// Lazy-loaded page components for code splitting
+// Auth pages (small, load immediately for critical path)
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Budgets from './pages/Budgets'
-import Transactions from './pages/Transactions'
-import RecurringTransactions from './pages/RecurringTransactions'
-import Goals from './pages/Goals'
-import BabyGoalDetail from './pages/BabyGoalDetail'
-import HouseGoalDetail from './pages/HouseGoalDetail'
-import BankStatements from './pages/BankStatements'
-import DocumentReview from './pages/DocumentReview'
-import Categories from './pages/Categories'
-import { HealthDashboard, Workouts, Weight, Nutrition, Sleep } from './pages/health'
-import { TasksDashboard, TaskList, Projects } from './pages/tasks'
-import { LifeGoalsDashboard, GoalsList, GoalDetail, Milestones } from './pages/life-goals'
+
+// Finance module (core app functionality)
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Budgets = lazy(() => import('./pages/Budgets'))
+const Transactions = lazy(() => import('./pages/Transactions'))
+const RecurringTransactions = lazy(() => import('./pages/RecurringTransactions'))
+const Goals = lazy(() => import('./pages/Goals'))
+const BabyGoalDetail = lazy(() => import('./pages/BabyGoalDetail'))
+const HouseGoalDetail = lazy(() => import('./pages/HouseGoalDetail'))
+const BankStatements = lazy(() => import('./pages/BankStatements'))
+const DocumentReview = lazy(() => import('./pages/DocumentReview'))
+const Categories = lazy(() => import('./pages/Categories'))
+
+// Health module
+const HealthDashboard = lazy(() => import('./pages/health').then(m => ({ default: m.HealthDashboard })))
+const Workouts = lazy(() => import('./pages/health').then(m => ({ default: m.Workouts })))
+const Weight = lazy(() => import('./pages/health').then(m => ({ default: m.Weight })))
+const Nutrition = lazy(() => import('./pages/health').then(m => ({ default: m.Nutrition })))
+const Sleep = lazy(() => import('./pages/health').then(m => ({ default: m.Sleep })))
+
+// Tasks module
+const TasksDashboard = lazy(() => import('./pages/tasks').then(m => ({ default: m.TasksDashboard })))
+const TaskList = lazy(() => import('./pages/tasks').then(m => ({ default: m.TaskList })))
+const Projects = lazy(() => import('./pages/tasks').then(m => ({ default: m.Projects })))
+
+// Life Goals module
+const LifeGoalsDashboard = lazy(() => import('./pages/life-goals').then(m => ({ default: m.LifeGoalsDashboard })))
+const GoalsList = lazy(() => import('./pages/life-goals').then(m => ({ default: m.GoalsList })))
+const GoalDetail = lazy(() => import('./pages/life-goals').then(m => ({ default: m.GoalDetail })))
+const Milestones = lazy(() => import('./pages/life-goals').then(m => ({ default: m.Milestones })))
+
+/**
+ * Loading fallback for lazy-loaded components
+ */
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+    </div>
+  )
+}
 
 /**
  * Root application component that configures providers and routing.
@@ -78,15 +115,20 @@ import { LifeGoalsDashboard, GoalsList, GoalDetail, Milestones } from './pages/l
  */
 function App() {
   return (
-    // ThemeProvider must be outermost to provide theme to all components
+    // QueryClientProvider must be outermost for React Query
+    <QueryClientProvider client={queryClient}>
+    {/* ThemeProvider provides theme to all components */}
     <ThemeProvider>
       {/* ToastProvider for app-wide notifications */}
       <ToastProvider>
+      {/* ErrorBoundary catches unhandled errors */}
+      <ErrorBoundary>
       {/* AuthProvider wraps routes to provide auth state throughout */}
       <AuthProvider>
         {/* ModuleProvider manages which modules are enabled for the user */}
         <ModuleProvider>
         <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes - accessible without authentication */}
           <Route path="/login" element={<Login />} />
@@ -135,11 +177,16 @@ function App() {
             <Route path="life-goals/:id" element={<GoalDetail />} />
           </Route>
         </Routes>
+        </Suspense>
         </BrowserRouter>
         </ModuleProvider>
       </AuthProvider>
+      </ErrorBoundary>
       </ToastProvider>
     </ThemeProvider>
+    {/* React Query DevTools - only in development */}
+    {APP_CONFIG.features.queryDevtools && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   )
 }
 

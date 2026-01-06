@@ -7,29 +7,12 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
-import api from '../../services/api'
+import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from '../../hooks/queries/useGoals'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
 type LifeGoalStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'ABANDONED'
 
-interface Milestone {
-  id: string
-  title: string
-  isCompleted: boolean
-  targetDate: string | null
-}
-
-interface LifeGoal {
-  id: string
-  title: string
-  description: string | null
-  category: LifeGoalCategory
-  status: LifeGoalStatus
-  targetDate: string | null
-  priority: number
-  milestones: Milestone[]
-  _count: { milestones: number }
-}
+// Types are provided by useGoals hook
 
 const CATEGORY_OPTIONS: { value: LifeGoalCategory; label: string; color: string }[] = [
   { value: 'CAREER', label: 'Career', color: '#3B82F6' },
@@ -60,8 +43,6 @@ const PRIORITY_OPTIONS = [
 export default function GoalsList() {
   const [searchParams] = useSearchParams()
   const { showToast } = useToast()
-  const [goals, setGoals] = useState<LifeGoal[]>([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active')
   const [formData, setFormData] = useState({
@@ -72,35 +53,27 @@ export default function GoalsList() {
     priority: 2,
   })
 
+  // Initialize filter from URL params
   useEffect(() => {
-    const categoryParam = searchParams.get('category')
     const statusParam = searchParams.get('status')
     if (statusParam === 'COMPLETED') {
       setFilter('completed')
     }
-    fetchGoals(categoryParam as LifeGoalCategory | null)
-  }, [searchParams, filter])
+  }, [searchParams])
 
-  const fetchGoals = async (category?: LifeGoalCategory | null) => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (category) params.append('category', category)
-      if (filter === 'completed') {
-        params.append('status', 'COMPLETED')
-        params.append('includeCompleted', 'true')
-      } else if (filter === 'all') {
-        params.append('includeCompleted', 'true')
-      }
-
-      const response = await api.get<LifeGoal[]>(`/life-goals?${params.toString()}`)
-      setGoals(response.data)
-    } catch (err) {
-      console.error('Failed to fetch goals:', err)
-    } finally {
-      setLoading(false)
-    }
+  // Build query filters based on URL params and filter state
+  const categoryParam = searchParams.get('category') as LifeGoalCategory | null
+  const queryFilters = {
+    category: categoryParam || undefined,
+    status: filter === 'completed' ? 'COMPLETED' as LifeGoalStatus : undefined,
+    includeCompleted: filter === 'completed' || filter === 'all',
   }
+
+  // React Query hooks
+  const { data: goals = [], isLoading } = useGoals(queryFilters)
+  const createGoalMutation = useCreateGoal()
+  const updateGoalMutation = useUpdateGoal()
+  const deleteGoalMutation = useDeleteGoal()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,7 +82,7 @@ export default function GoalsList() {
       return
     }
     try {
-      await api.post('/life-goals', {
+      await createGoalMutation.mutateAsync({
         title: formData.title,
         description: formData.description || undefined,
         category: formData.category,
@@ -119,20 +92,16 @@ export default function GoalsList() {
       setFormData({ title: '', description: '', category: 'PERSONAL', targetDate: '', priority: 2 })
       setShowForm(false)
       showToast('success', 'Goal created successfully')
-      fetchGoals()
     } catch (err) {
-      console.error('Failed to create goal:', err)
       showToast('error', 'Failed to create goal')
     }
   }
 
   const updateStatus = async (goalId: string, status: LifeGoalStatus) => {
     try {
-      await api.put(`/life-goals/${goalId}`, { status })
+      await updateGoalMutation.mutateAsync({ id: goalId, data: { status } })
       showToast('success', 'Status updated')
-      fetchGoals()
     } catch (err) {
-      console.error('Failed to update status:', err)
       showToast('error', 'Failed to update status')
     }
   }
@@ -140,11 +109,9 @@ export default function GoalsList() {
   const deleteGoal = async (goalId: string) => {
     if (!confirm('Delete this goal and all its milestones?')) return
     try {
-      await api.delete(`/life-goals/${goalId}`)
+      await deleteGoalMutation.mutateAsync(goalId)
       showToast('success', 'Goal deleted')
-      fetchGoals()
     } catch (err) {
-      console.error('Failed to delete goal:', err)
       showToast('error', 'Failed to delete goal')
     }
   }
@@ -157,7 +124,7 @@ export default function GoalsList() {
     return PRIORITY_OPTIONS.find((p) => p.value === priority)?.label || 'Medium'
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         {/* Header skeleton */}
@@ -303,8 +270,9 @@ export default function GoalsList() {
           {goals.map((goal) => {
             const categoryConfig = getCategoryConfig(goal.category)
             const completedMilestones = goal.milestones.filter((m) => m.isCompleted).length
-            const progress = goal._count.milestones > 0
-              ? Math.round((completedMilestones / goal._count.milestones) * 100)
+            const milestoneCount = goal._count?.milestones ?? goal.milestones.length
+            const progress = milestoneCount > 0
+              ? Math.round((completedMilestones / milestoneCount) * 100)
               : 0
 
             return (
@@ -349,14 +317,14 @@ export default function GoalsList() {
                           Target: {new Date(goal.targetDate).toLocaleDateString()}
                         </span>
                       )}
-                      {goal._count.milestones > 0 && (
+                      {milestoneCount > 0 && (
                         <span className="text-sm text-content-tertiary">
-                          {completedMilestones}/{goal._count.milestones} milestones
+                          {completedMilestones}/{milestoneCount} milestones
                         </span>
                       )}
                     </div>
                     {/* Progress bar */}
-                    {goal._count.milestones > 0 && (
+                    {milestoneCount > 0 && (
                       <div className="mt-3">
                         <div className="h-2 bg-theme-elevated rounded-full overflow-hidden">
                           <div

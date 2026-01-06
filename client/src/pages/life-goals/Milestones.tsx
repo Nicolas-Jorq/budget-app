@@ -4,32 +4,18 @@
  * @module pages/life-goals/Milestones
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useToast } from '../../context/ToastContext'
-import api from '../../services/api'
+import {
+  useGoals,
+  useCreateMilestone,
+  useToggleMilestone,
+  useDeleteMilestone,
+} from '../../hooks/queries/useGoals'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
 
-interface Milestone {
-  id: string
-  title: string
-  description: string | null
-  isCompleted: boolean
-  completedAt: string | null
-  targetDate: string | null
-  goal: {
-    id: string
-    title: string
-    category: LifeGoalCategory
-  }
-}
-
-interface LifeGoal {
-  id: string
-  title: string
-  category: LifeGoalCategory
-  milestones: Milestone[]
-}
+// Types are provided by useGoals hook
 
 const CATEGORY_COLORS: Record<LifeGoalCategory, string> = {
   CAREER: '#3B82F6',
@@ -45,8 +31,6 @@ const CATEGORY_COLORS: Record<LifeGoalCategory, string> = {
 
 export default function Milestones() {
   const { showToast } = useToast()
-  const [goals, setGoals] = useState<LifeGoal[]>([])
-  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -56,29 +40,16 @@ export default function Milestones() {
     targetDate: '',
   })
 
-  useEffect(() => {
-    fetchGoals()
-  }, [])
-
-  const fetchGoals = async () => {
-    try {
-      setLoading(true)
-      const response = await api.get<LifeGoal[]>('/life-goals?includeCompleted=true')
-      setGoals(response.data)
-    } catch (err) {
-      console.error('Failed to fetch goals:', err)
-      showToast('error', 'Failed to load milestones')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // React Query hooks
+  const { data: goals = [], isLoading } = useGoals({ includeCompleted: true })
+  const createMilestoneMutation = useCreateMilestone()
+  const toggleMilestoneMutation = useToggleMilestone()
+  const deleteMilestoneMutation = useDeleteMilestone()
 
   const toggleMilestone = async (milestoneId: string) => {
     try {
-      await api.patch(`/life-goals/milestones/${milestoneId}/toggle`)
-      fetchGoals()
+      await toggleMilestoneMutation.mutateAsync(milestoneId)
     } catch (err) {
-      console.error('Failed to toggle milestone:', err)
       showToast('error', 'Failed to update milestone')
     }
   }
@@ -86,11 +57,9 @@ export default function Milestones() {
   const deleteMilestone = async (milestoneId: string) => {
     if (!confirm('Delete this milestone?')) return
     try {
-      await api.delete(`/life-goals/milestones/${milestoneId}`)
+      await deleteMilestoneMutation.mutateAsync(milestoneId)
       showToast('success', 'Milestone deleted')
-      fetchGoals()
     } catch (err) {
-      console.error('Failed to delete milestone:', err)
       showToast('error', 'Failed to delete milestone')
     }
   }
@@ -105,17 +74,18 @@ export default function Milestones() {
       return
     }
     try {
-      await api.post(`/life-goals/${formData.goalId}/milestones`, {
-        title: formData.title,
-        description: formData.description || undefined,
-        targetDate: formData.targetDate || undefined,
+      await createMilestoneMutation.mutateAsync({
+        goalId: formData.goalId,
+        data: {
+          title: formData.title,
+          description: formData.description || undefined,
+          targetDate: formData.targetDate || undefined,
+        },
       })
       showToast('success', 'Milestone added')
       setFormData({ goalId: '', title: '', description: '', targetDate: '' })
       setShowForm(false)
-      fetchGoals()
     } catch (err) {
-      console.error('Failed to add milestone:', err)
       showToast('error', 'Failed to add milestone')
     }
   }
@@ -149,7 +119,7 @@ export default function Milestones() {
     return 0
   })
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         {/* Header skeleton */}

@@ -45,8 +45,8 @@ export default function Dashboard() {
         setStats(statsRes.data)
         setChartData(chartsRes.data)
         setGoalsSummary(goalsRes.data)
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
+      } catch {
+        // Error handling is managed by ErrorBoundary
       } finally {
         setIsLoading(false)
       }
