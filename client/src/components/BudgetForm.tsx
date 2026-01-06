@@ -5,9 +5,10 @@
  * form state, validation, and API communication.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { Budget } from '../types'
+import { useCategories } from '../hooks/useCategories'
 
 /**
  * Props interface for the BudgetForm component.
@@ -21,23 +22,6 @@ interface BudgetFormProps {
   /** Callback function triggered after successful save operation */
   onSuccess: () => void
 }
-
-/**
- * Predefined list of budget categories.
- * These categories help users organize their budgets by expense type.
- * @constant {string[]}
- */
-const categories = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Bills & Utilities',
-  'Health',
-  'Travel',
-  'Education',
-  'Other',
-]
 
 /**
  * A modal form component for creating and editing budgets.
@@ -72,12 +56,22 @@ const categories = [
  * />
  */
 export default function BudgetForm({ budget, onClose, onSuccess }: BudgetFormProps) {
+  // Fetch user's expense categories (budgets are for expenses)
+  const { expenseCategories, isLoading: categoriesLoading } = useCategories()
+
   // Initialize form state with existing budget values or defaults
   const [name, setName] = useState(budget?.name ?? '')
   const [amount, setAmount] = useState(budget?.amount?.toString() ?? '')
-  const [category, setCategory] = useState(budget?.category ?? categories[0])
+  const [category, setCategory] = useState(budget?.category ?? '')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Set default category when categories load
+  useEffect(() => {
+    if (expenseCategories.length > 0 && !category) {
+      setCategory(expenseCategories[0].name)
+    }
+  }, [expenseCategories, category])
 
   /**
    * Handles form submission for creating or updating a budget.
@@ -171,11 +165,16 @@ export default function BudgetForm({ budget, onClose, onSuccess }: BudgetFormPro
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              disabled={categoriesLoading}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
             >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categoriesLoading ? (
+                <option>Loading...</option>
+              ) : (
+                expenseCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))
+              )}
             </select>
           </div>
 

@@ -41,6 +41,42 @@ export interface User {
 }
 
 /**
+ * Category type enum matching backend CategoryType.
+ */
+export type CategoryType = 'EXPENSE' | 'INCOME' | 'BOTH'
+
+/**
+ * Represents a user-configurable transaction/budget category.
+ *
+ * Categories are user-specific and can be customized. Default categories
+ * are seeded on first access but can be modified or deleted.
+ *
+ * @interface Category
+ * @property {string} id - Unique identifier (CUID)
+ * @property {string} name - Category name (e.g., "Food & Dining")
+ * @property {CategoryType} type - Whether for expenses, income, or both
+ * @property {string} [color] - Hex color for display
+ * @property {string} [icon] - Icon identifier
+ * @property {boolean} isDefault - Whether this is a system default category
+ * @property {number} sortOrder - Order for display in lists
+ * @property {string} userId - ID of the owning user
+ * @property {string} createdAt - ISO 8601 timestamp of creation
+ * @property {string} updatedAt - ISO 8601 timestamp of last update
+ */
+export interface Category {
+  id: string
+  name: string
+  type: CategoryType
+  color?: string
+  icon?: string
+  isDefault: boolean
+  sortOrder: number
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+/**
  * Represents a budget category with spending limits.
  *
  * Budgets allow users to set spending limits for categories and

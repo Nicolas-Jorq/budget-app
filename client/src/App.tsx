@@ -29,6 +29,7 @@ import BabyGoalDetail from './pages/BabyGoalDetail'
 import HouseGoalDetail from './pages/HouseGoalDetail'
 import BankStatements from './pages/BankStatements'
 import DocumentReview from './pages/DocumentReview'
+import Categories from './pages/Categories'
 
 /**
  * Root application component that configures providers and routing.
@@ -90,6 +91,7 @@ function App() {
             {/* Nested routes render inside Layout's Outlet */}
             <Route index element={<Dashboard />} />
             <Route path="budgets" element={<Budgets />} />
+            <Route path="categories" element={<Categories />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="recurring" element={<RecurringTransactions />} />
             <Route path="goals" element={<Goals />} />

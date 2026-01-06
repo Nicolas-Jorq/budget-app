@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { Transaction, Budget } from '../types'
-import { ALL_CATEGORIES } from '../utils/constants'
+import { useCategories } from '../hooks/useCategories'
 
 /**
  * Props interface for the TransactionForm component.
@@ -56,11 +56,28 @@ interface TransactionFormProps {
  * />
  */
 export default function TransactionForm({ transaction, onClose, onSuccess }: TransactionFormProps) {
+  // Fetch user's categories
+  const { expenseCategories, incomeCategories, isLoading: categoriesLoading } = useCategories()
+
   // Initialize form state with existing transaction values or defaults
   const [description, setDescription] = useState(transaction?.description ?? '')
   const [amount, setAmount] = useState(transaction?.amount?.toString() ?? '')
   const [type, setType] = useState<'income' | 'expense'>(transaction?.type ?? 'expense')
-  const [category, setCategory] = useState(transaction?.category ?? ALL_CATEGORIES[0])
+  const [category, setCategory] = useState(transaction?.category ?? '')
+
+  // Get categories based on selected type
+  const availableCategories = type === 'expense' ? expenseCategories : incomeCategories
+
+  // Update category when type changes or categories load
+  useEffect(() => {
+    if (availableCategories.length > 0) {
+      // If editing and category exists in available list, keep it
+      const categoryExists = availableCategories.some((c) => c.name === category)
+      if (!categoryExists) {
+        setCategory(availableCategories[0].name)
+      }
+    }
+  }, [type, availableCategories, category])
 
   // Initialize date field: parse existing date or use today's date
   const [date, setDate] = useState(
@@ -225,11 +242,16 @@ export default function TransactionForm({ transaction, onClose, onSuccess }: Tra
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              disabled={categoriesLoading}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
             >
-              {ALL_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {categoriesLoading ? (
+                <option>Loading...</option>
+              ) : (
+                availableCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                ))
+              )}
             </select>
           </div>
 

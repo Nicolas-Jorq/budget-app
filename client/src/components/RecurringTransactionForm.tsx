@@ -16,7 +16,7 @@ import {
   FREQUENCY_INFO,
   DAYS_OF_WEEK,
 } from '../types'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants'
+import { useCategories } from '../hooks/useCategories'
 
 /**
  * Props interface for the RecurringTransactionForm component.
@@ -55,12 +55,15 @@ export default function RecurringTransactionForm({
   onClose,
   onSuccess,
 }: RecurringTransactionFormProps) {
+  // Fetch user's categories
+  const { expenseCategories, incomeCategories, isLoading: categoriesLoading } = useCategories()
+
   // Core fields
   const [name, setName] = useState(recurring?.name ?? '')
   const [description, setDescription] = useState(recurring?.description ?? '')
   const [amount, setAmount] = useState(recurring?.amount?.toString() ?? '')
   const [type, setType] = useState<'income' | 'expense'>(recurring?.type ?? 'expense')
-  const [category, setCategory] = useState(recurring?.category ?? EXPENSE_CATEGORIES[0])
+  const [category, setCategory] = useState(recurring?.category ?? '')
 
   // Schedule fields
   const [frequency, setFrequency] = useState<RecurrenceFrequency>(recurring?.frequency ?? 'MONTHLY')
@@ -96,13 +99,18 @@ export default function RecurringTransactionForm({
     fetchBudgets()
   }, [])
 
-  // Update category when type changes
+  // Get categories based on selected type
+  const availableCategories = type === 'expense' ? expenseCategories : incomeCategories
+
+  // Update category when type changes or categories load
   useEffect(() => {
-    const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
-    if (!(categories as readonly string[]).includes(category)) {
-      setCategory(categories[0])
+    if (availableCategories.length > 0) {
+      const categoryExists = availableCategories.some((c) => c.name === category)
+      if (!categoryExists) {
+        setCategory(availableCategories[0].name)
+      }
     }
-  }, [type, category])
+  }, [type, availableCategories, category])
 
   // Reset schedule-specific fields when frequency changes
   useEffect(() => {
@@ -147,8 +155,6 @@ export default function RecurringTransactionForm({
       setIsLoading(false)
     }
   }
-
-  const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -253,13 +259,18 @@ export default function RecurringTransactionForm({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              disabled={categoriesLoading}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50"
             >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
+              {categoriesLoading ? (
+                <option>Loading...</option>
+              ) : (
+                availableCategories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
