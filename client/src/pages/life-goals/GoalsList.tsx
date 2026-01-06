@@ -6,8 +6,12 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '../../context/ToastContext'
 import { useGoals, useCreateGoal, useUpdateGoal, useDeleteGoal } from '../../hooks/queries/useGoals'
+import { lifeGoalSchema, type LifeGoalFormData } from '../../lib/validations'
+import { InputField, SelectField, TextareaField, SubmitButton } from '../../components/form'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
 type LifeGoalStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'ABANDONED'
@@ -45,12 +49,22 @@ export default function GoalsList() {
   const { showToast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active')
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'PERSONAL' as LifeGoalCategory,
-    targetDate: '',
-    priority: 2,
+
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<LifeGoalFormData>({
+    resolver: zodResolver(lifeGoalSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      category: 'PERSONAL',
+      targetDate: '',
+      priority: 2,
+    },
   })
 
   // Initialize filter from URL params
@@ -75,24 +89,19 @@ export default function GoalsList() {
   const updateGoalMutation = useUpdateGoal()
   const deleteGoalMutation = useDeleteGoal()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.title.trim()) {
-      showToast('error', 'Goal title is required')
-      return
-    }
+  const onSubmit = async (data: LifeGoalFormData) => {
     try {
       await createGoalMutation.mutateAsync({
-        title: formData.title,
-        description: formData.description || undefined,
-        category: formData.category,
-        targetDate: formData.targetDate || undefined,
-        priority: formData.priority,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        targetDate: data.targetDate,
+        priority: data.priority,
       })
-      setFormData({ title: '', description: '', category: 'PERSONAL', targetDate: '', priority: 2 })
+      reset()
       setShowForm(false)
       showToast('success', 'Goal created successfully')
-    } catch (err) {
+    } catch {
       showToast('error', 'Failed to create goal')
     }
   }
@@ -197,66 +206,53 @@ export default function GoalsList() {
 
       {/* Add Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-theme-surface border border-border-subtle rounded-lg p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-theme-surface border border-border-subtle rounded-lg p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-content-secondary mb-1">Goal Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              <InputField
+                label="Goal Title"
                 placeholder="What do you want to achieve?"
-                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
-                required
+                error={errors.title}
+                {...register('title')}
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-content-secondary mb-1">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              <TextareaField
+                label="Description"
                 placeholder="Why is this goal important to you?"
                 rows={2}
-                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
+                error={errors.description}
+                {...register('description')}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-content-secondary mb-1">Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as LifeGoalCategory })}
-                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
-              >
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-content-secondary mb-1">Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
-              >
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-content-secondary mb-1">Target Date</label>
-              <input
-                type="date"
-                value={formData.targetDate}
-                onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
-              />
-            </div>
+            <SelectField
+              label="Category"
+              error={errors.category}
+              {...register('category')}
+            >
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </SelectField>
+            <SelectField
+              label="Priority"
+              error={errors.priority}
+              {...register('priority', { valueAsNumber: true })}
+            >
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </SelectField>
+            <InputField
+              label="Target Date"
+              type="date"
+              error={errors.targetDate}
+              {...register('targetDate')}
+            />
           </div>
-          <button type="submit" className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600">
+          <SubmitButton isSubmitting={isSubmitting || createGoalMutation.isPending}>
             Create Goal
-          </button>
+          </SubmitButton>
         </form>
       )}
 
