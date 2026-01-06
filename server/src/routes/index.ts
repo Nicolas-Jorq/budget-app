@@ -3,6 +3,7 @@ import authRoutes from './auth.js'
 import budgetRoutes from './budgets.js'
 import transactionRoutes from './transactions.js'
 import dashboardRoutes from './dashboard.js'
+import goalsRoutes from './goals.js'
 
 const router = Router()
 
@@ -16,6 +17,7 @@ router.get('/', (_req, res) => {
       budgets: '/api/budgets',
       transactions: '/api/transactions',
       dashboard: '/api/dashboard',
+      goals: '/api/goals',
     },
   })
 })
@@ -25,5 +27,6 @@ router.use('/auth', authRoutes)
 router.use('/budgets', budgetRoutes)
 router.use('/transactions', transactionRoutes)
 router.use('/dashboard', dashboardRoutes)
+router.use('/goals', goalsRoutes)
 
 export default router

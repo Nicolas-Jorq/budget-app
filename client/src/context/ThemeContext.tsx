@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useLayoutEffect, ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -10,23 +10,32 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const stored = localStorage.getItem('theme') as Theme | null
-    if (stored) return stored
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark'
-    }
-    return 'light'
-  })
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light'
 
-  useEffect(() => {
-    // Update document class and localStorage
-    const root = window.document.documentElement
+  const stored = localStorage.getItem('theme')
+  if (stored === 'light' || stored === 'dark') return stored
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
+
+  // Use useLayoutEffect to apply theme before paint
+  useLayoutEffect(() => {
+    const root = document.documentElement
+
+    // Remove both classes first
     root.classList.remove('light', 'dark')
+
+    // Add the current theme class
     root.classList.add(theme)
+
+    // Set color-scheme for native elements
+    root.style.colorScheme = theme
+
+    // Persist to localStorage
     localStorage.setItem('theme', theme)
   }, [theme])
 
