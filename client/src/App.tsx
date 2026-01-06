@@ -16,6 +16,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ToastProvider } from './context/ToastContext'
 import { ModuleProvider } from './modules/core'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -33,7 +34,7 @@ import DocumentReview from './pages/DocumentReview'
 import Categories from './pages/Categories'
 import { HealthDashboard, Workouts, Weight, Nutrition, Sleep } from './pages/health'
 import { TasksDashboard, TaskList, Projects } from './pages/tasks'
-import { LifeGoalsDashboard, GoalsList, Milestones } from './pages/life-goals'
+import { LifeGoalsDashboard, GoalsList, GoalDetail, Milestones } from './pages/life-goals'
 
 /**
  * Root application component that configures providers and routing.
@@ -79,6 +80,8 @@ function App() {
   return (
     // ThemeProvider must be outermost to provide theme to all components
     <ThemeProvider>
+      {/* ToastProvider for app-wide notifications */}
+      <ToastProvider>
       {/* AuthProvider wraps routes to provide auth state throughout */}
       <AuthProvider>
         {/* ModuleProvider manages which modules are enabled for the user */}
@@ -129,11 +132,13 @@ function App() {
             <Route path="life-goals" element={<LifeGoalsDashboard />} />
             <Route path="life-goals/list" element={<GoalsList />} />
             <Route path="life-goals/milestones" element={<Milestones />} />
+            <Route path="life-goals/:id" element={<GoalDetail />} />
           </Route>
         </Routes>
         </BrowserRouter>
         </ModuleProvider>
       </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   )
 }

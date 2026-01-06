@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useToast } from '../../context/ToastContext'
 import api from '../../services/api'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
@@ -43,9 +44,17 @@ const CATEGORY_COLORS: Record<LifeGoalCategory, string> = {
 }
 
 export default function Milestones() {
+  const { showToast } = useToast()
   const [goals, setGoals] = useState<LifeGoal[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({
+    goalId: '',
+    title: '',
+    description: '',
+    targetDate: '',
+  })
 
   useEffect(() => {
     fetchGoals()
@@ -58,6 +67,7 @@ export default function Milestones() {
       setGoals(response.data)
     } catch (err) {
       console.error('Failed to fetch goals:', err)
+      showToast('error', 'Failed to load milestones')
     } finally {
       setLoading(false)
     }
@@ -69,6 +79,7 @@ export default function Milestones() {
       fetchGoals()
     } catch (err) {
       console.error('Failed to toggle milestone:', err)
+      showToast('error', 'Failed to update milestone')
     }
   }
 
@@ -76,9 +87,36 @@ export default function Milestones() {
     if (!confirm('Delete this milestone?')) return
     try {
       await api.delete(`/life-goals/milestones/${milestoneId}`)
+      showToast('success', 'Milestone deleted')
       fetchGoals()
     } catch (err) {
       console.error('Failed to delete milestone:', err)
+      showToast('error', 'Failed to delete milestone')
+    }
+  }
+
+  const handleAddMilestone = async () => {
+    if (!formData.goalId) {
+      showToast('error', 'Please select a goal')
+      return
+    }
+    if (!formData.title.trim()) {
+      showToast('error', 'Milestone title is required')
+      return
+    }
+    try {
+      await api.post(`/life-goals/${formData.goalId}/milestones`, {
+        title: formData.title,
+        description: formData.description || undefined,
+        targetDate: formData.targetDate || undefined,
+      })
+      showToast('success', 'Milestone added')
+      setFormData({ goalId: '', title: '', description: '', targetDate: '' })
+      setShowForm(false)
+      fetchGoals()
+    } catch (err) {
+      console.error('Failed to add milestone:', err)
+      showToast('error', 'Failed to add milestone')
     }
   }
 
@@ -113,8 +151,42 @@ export default function Milestones() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div>
+          <div className="h-8 w-32 bg-theme-elevated rounded animate-pulse-subtle" />
+          <div className="h-4 w-56 bg-theme-elevated rounded mt-2 animate-pulse-subtle" />
+        </div>
+        {/* Filter skeleton */}
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 w-24 bg-theme-elevated rounded-lg animate-pulse-subtle" />
+          ))}
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-theme-surface border border-border-subtle rounded-lg p-4 animate-pulse-subtle">
+              <div className="h-4 w-16 bg-theme-elevated rounded mb-2" />
+              <div className="h-8 w-12 bg-theme-elevated rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Milestones skeleton */}
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-theme-surface border border-border-subtle rounded-lg p-4 animate-pulse-subtle">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded border-2 border-border-subtle" />
+                <div className="flex-1">
+                  <div className="h-4 w-20 bg-theme-elevated rounded mb-2" />
+                  <div className="h-5 w-3/4 bg-theme-elevated rounded mb-1" />
+                  <div className="h-3 w-24 bg-theme-elevated rounded mt-2" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -122,10 +194,74 @@ export default function Milestones() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-content-primary">Milestones</h1>
-        <p className="text-content-secondary mt-1">Track progress across all your goals</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-content-primary">Milestones</h1>
+          <p className="text-content-secondary mt-1">Track progress across all your goals</p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+        >
+          {showForm ? 'Cancel' : '+ Add Milestone'}
+        </button>
       </div>
+
+      {/* Add Milestone Form */}
+      {showForm && (
+        <div className="bg-theme-surface border border-border-subtle rounded-lg p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-content-secondary mb-1">Goal</label>
+            <select
+              value={formData.goalId}
+              onChange={(e) => setFormData({ ...formData, goalId: e.target.value })}
+              className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
+            >
+              <option value="">Select a goal...</option>
+              {goals.map((goal) => (
+                <option key={goal.id} value={goal.id}>{goal.title}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-content-secondary mb-1">Title</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              placeholder="Milestone title"
+              className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-content-secondary mb-1">Description (optional)</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief description"
+                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-content-secondary mb-1">Target Date (optional)</label>
+              <input
+                type="date"
+                value={formData.targetDate}
+                onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                className="w-full px-3 py-2 bg-theme-elevated border border-border-subtle rounded-lg text-content-primary"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleAddMilestone}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+          >
+            Add Milestone
+          </button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2">

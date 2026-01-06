@@ -5,7 +5,8 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, Link } from 'react-router-dom'
+import { useToast } from '../../context/ToastContext'
 import api from '../../services/api'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
@@ -58,6 +59,7 @@ const PRIORITY_OPTIONS = [
 
 export default function GoalsList() {
   const [searchParams] = useSearchParams()
+  const { showToast } = useToast()
   const [goals, setGoals] = useState<LifeGoal[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -102,6 +104,10 @@ export default function GoalsList() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.title.trim()) {
+      showToast('error', 'Goal title is required')
+      return
+    }
     try {
       await api.post('/life-goals', {
         title: formData.title,
@@ -112,18 +118,22 @@ export default function GoalsList() {
       })
       setFormData({ title: '', description: '', category: 'PERSONAL', targetDate: '', priority: 2 })
       setShowForm(false)
+      showToast('success', 'Goal created successfully')
       fetchGoals()
     } catch (err) {
       console.error('Failed to create goal:', err)
+      showToast('error', 'Failed to create goal')
     }
   }
 
   const updateStatus = async (goalId: string, status: LifeGoalStatus) => {
     try {
       await api.put(`/life-goals/${goalId}`, { status })
+      showToast('success', 'Status updated')
       fetchGoals()
     } catch (err) {
       console.error('Failed to update status:', err)
+      showToast('error', 'Failed to update status')
     }
   }
 
@@ -131,9 +141,11 @@ export default function GoalsList() {
     if (!confirm('Delete this goal and all its milestones?')) return
     try {
       await api.delete(`/life-goals/${goalId}`)
+      showToast('success', 'Goal deleted')
       fetchGoals()
     } catch (err) {
       console.error('Failed to delete goal:', err)
+      showToast('error', 'Failed to delete goal')
     }
   }
 
@@ -147,8 +159,38 @@ export default function GoalsList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-32 bg-theme-elevated rounded animate-pulse-subtle" />
+            <div className="h-4 w-48 bg-theme-elevated rounded mt-2 animate-pulse-subtle" />
+          </div>
+          <div className="h-10 w-28 bg-theme-elevated rounded-lg animate-pulse-subtle" />
+        </div>
+        {/* Filter skeleton */}
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 w-24 bg-theme-elevated rounded-lg animate-pulse-subtle" />
+          ))}
+        </div>
+        {/* Goals skeleton */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-theme-surface border border-border-subtle rounded-lg p-5 animate-pulse-subtle">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-5 w-16 bg-theme-elevated rounded" />
+                <div className="h-4 w-24 bg-theme-elevated rounded" />
+              </div>
+              <div className="h-6 w-3/4 bg-theme-elevated rounded mb-2" />
+              <div className="h-4 w-1/2 bg-theme-elevated rounded" />
+              <div className="flex gap-4 mt-4">
+                <div className="h-8 w-28 bg-theme-elevated rounded" />
+                <div className="h-4 w-24 bg-theme-elevated rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -283,9 +325,12 @@ export default function GoalsList() {
                         Priority: {getPriorityLabel(goal.priority)}
                       </span>
                     </div>
-                    <h3 className={`text-lg font-medium ${goal.status === 'COMPLETED' ? 'line-through text-content-tertiary' : 'text-content-primary'}`}>
+                    <Link
+                      to={`/life-goals/${goal.id}`}
+                      className={`text-lg font-medium hover:text-primary-500 transition-colors ${goal.status === 'COMPLETED' ? 'line-through text-content-tertiary' : 'text-content-primary'}`}
+                    >
                       {goal.title}
-                    </h3>
+                    </Link>
                     {goal.description && (
                       <p className="text-content-secondary mt-1">{goal.description}</p>
                     )}
