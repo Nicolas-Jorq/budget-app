@@ -1,0 +1,1 @@
+export { AIInsights } from './AIInsights'

@@ -6,6 +6,8 @@ import SpendingPieChart from '../components/charts/SpendingPieChart'
 import IncomeExpenseChart from '../components/charts/IncomeExpenseChart'
 import SpendingTrendChart from '../components/charts/SpendingTrendChart'
 import BudgetProgressChart from '../components/charts/BudgetProgressChart'
+import { AIInsights } from '../components/insights'
+import { useAuth } from '../context/AuthContext'
 
 interface DashboardStats {
   totalBudget: number
@@ -17,6 +19,7 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [chartData, setChartData] = useState<ChartData | null>(null)
   const [goalsSummary, setGoalsSummary] = useState<GoalsSummary | null>(null)
@@ -188,6 +191,11 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* AI Insights */}
+      {user && (
+        <AIInsights userId={user.id} />
+      )}
 
       {/* Budget Progress & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
