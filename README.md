@@ -1,21 +1,28 @@
 # Budget App
 
-A full-stack budget tracking application built with React, Express, TypeScript, and PostgreSQL. Features AI-powered bank statement processing, savings goals with house-hunting tools, and comprehensive financial analytics.
+A full-stack personal finance application built with React, Express, TypeScript, and PostgreSQL. Features AI-powered bank statement processing, savings goals with house-hunting tools, recurring transactions, and a sleek dark theme.
 
 ## Features
 
 ### Core Features
-- User authentication (register/login with JWT)
-- Dashboard with spending overview and statistics
-- Budget management (create, edit, delete budgets)
-- Transaction tracking (income and expenses)
-- Link transactions to budgets for automatic spending updates
+- **User authentication** - Register/login with JWT tokens
+- **Dashboard** - Spending overview, statistics, and visual charts
+- **Budget management** - Create, edit, delete budgets by category
+- **Transaction tracking** - Track income and expenses with category assignment
+- **User-configurable categories** - Customize expense and income categories
+- **Recurring transactions** - Schedule bills and income (daily, weekly, monthly, etc.)
+- **Dark theme** - Batman-inspired dark UI with gold accents
 
 ### Savings Goals
 - Create savings goals with target amounts and deadlines
 - Track progress with visual indicators
 - Automatic savings rate calculations
-- Support for different goal types (Emergency Fund, Vacation, House, Baby, Custom)
+- Support for different goal types:
+  - **Emergency Fund** - Standard savings tracking
+  - **Vacation** - Travel planning
+  - **House** - Property search integration
+  - **Baby** - Milestone tracking with projections
+  - **Custom** - Flexible goal configuration
 
 ### House Savings
 - Property search with real estate API integration
@@ -50,8 +57,26 @@ budget-app/
 ├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
+│   │   │   ├── Layout.tsx          # Main layout with sidebar
+│   │   │   ├── Sidebar.tsx         # Navigation sidebar
+│   │   │   ├── Navbar.tsx          # Top navigation bar
+│   │   │   ├── TransactionForm.tsx # Transaction create/edit
+│   │   │   ├── BudgetForm.tsx      # Budget create/edit
+│   │   │   ├── CategoryForm.tsx    # Category create/edit
+│   │   │   ├── RecurringTransactionForm.tsx
+│   │   │   └── ...
 │   │   ├── pages/          # Page components
-│   │   ├── context/        # React context (auth)
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Budgets.tsx
+│   │   │   ├── Categories.tsx
+│   │   │   ├── Transactions.tsx
+│   │   │   ├── RecurringTransactions.tsx
+│   │   │   ├── Goals.tsx
+│   │   │   ├── BankStatements.tsx
+│   │   │   └── ...
+│   │   ├── hooks/          # Custom React hooks
+│   │   │   └── useCategories.ts
+│   │   ├── context/        # React context (auth, theme)
 │   │   ├── services/       # API client
 │   │   └── types/          # TypeScript types
 │   └── ...
@@ -71,7 +96,8 @@ budget-app/
 │   │   └── routes/         # FastAPI endpoints
 │   └── ...
 ├── prisma/                 # Database schema
-│   └── schema.prisma
+│   ├── schema.prisma
+│   └── migrations/
 └── .env.example            # Environment template
 ```
 
@@ -81,7 +107,7 @@ Before running this project, make sure you have:
 
 - **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
 - **PostgreSQL** (v14 or higher) - [Download](https://www.postgresql.org/download/)
-- **Python** (v3.9 or higher) - For AI service
+- **Python** (v3.9 or higher) - For AI service (optional)
 - **npm** (comes with Node.js)
 
 ## Getting Started
@@ -94,13 +120,6 @@ cd budget-app
 
 # Install Node.js dependencies
 npm install
-
-# Set up Python AI service
-cd ai-service
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cd ..
 ```
 
 ### 2. Set Up PostgreSQL Database
@@ -144,8 +163,13 @@ DATABASE_URL="postgresql://YOUR_USERNAME@localhost:5432/budget_app?schema=public
 
 # JWT Secret (change this in production!)
 JWT_SECRET="your-secret-key-here"
+JWT_EXPIRES_IN="7d"
 
-# AI Service
+# Server
+PORT=3001
+CLIENT_URL="http://localhost:5173"
+
+# AI Service (optional - for bank statement import)
 AI_SERVICE_URL="http://localhost:8000"
 
 # LLM Provider: ollama, openai, or mock
@@ -159,7 +183,7 @@ OLLAMA_MODEL=llama3.2
 # OPENAI_API_KEY=sk-your-key-here
 
 # Real Estate Provider: simplyrets, rapidapi_zillow, or mock
-REAL_ESTATE_PROVIDER=simplyrets
+REAL_ESTATE_PROVIDER=mock
 ```
 
 ### 4. Set Up the Database
@@ -175,19 +199,30 @@ npm run db:migrate
 ### 5. Start the Application
 
 ```bash
-# Terminal 1: Start Node.js server and React client
+# Start both client and server
 npm run dev
-
-# Terminal 2: Start Python AI service
-cd ai-service
-source venv/bin/activate
-python -m uvicorn src.main:app --reload --port 8000
 ```
 
 The app will be available at:
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3001
-- **AI Service**: http://localhost:8000
+
+### 6. (Optional) Set Up AI Service
+
+Only needed for bank statement import feature:
+
+```bash
+# Set up Python AI service
+cd ai-service
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Start the AI service
+python -m uvicorn src.main:app --reload --port 8000
+```
+
+**AI Service**: http://localhost:8000
 
 ## Setting Up AI Providers
 
@@ -230,11 +265,27 @@ OPENAI_API_KEY=sk-your-key-here
 2. Click "Sign up" to create a new account
 3. After registering, you'll be taken to the Dashboard
 4. Use the sidebar to navigate:
-   - **Dashboard** - View spending overview
-   - **Budgets** - Create and manage budgets
+   - **Dashboard** - View spending overview and charts
+   - **Budgets** - Create and manage spending limits
+   - **Categories** - Customize expense and income categories
    - **Transactions** - Track income and expenses
-   - **Savings Goals** - Set and track savings goals
-   - **Bank Statements** - Import transactions from PDF statements
+   - **Recurring** - Set up recurring bills and income
+   - **Savings Goals** - Set and track savings targets
+   - **Statements** - Import transactions from PDF statements
+
+### Setting Up Categories
+Categories are automatically seeded with defaults when you first access them. To customize:
+1. Navigate to **Categories** in the sidebar
+2. Add new categories with custom names and colors
+3. Edit or delete existing categories
+4. Use "Reset to Defaults" to restore original categories
+
+### Setting Up Recurring Transactions
+1. Navigate to **Recurring** in the sidebar
+2. Click "Add Recurring"
+3. Set the frequency (daily, weekly, monthly, etc.)
+4. Choose the day of week/month for scheduling
+5. Optionally link to a budget
 
 ## Available Scripts
 
@@ -258,17 +309,42 @@ OPENAI_API_KEY=sk-your-key-here
 | POST | `/api/auth/login` | Login user |
 | GET | `/api/auth/me` | Get current user |
 
-### Budgets & Transactions
+### Budgets
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/budgets` | List all budgets |
 | POST | `/api/budgets` | Create a budget |
 | PUT | `/api/budgets/:id` | Update a budget |
 | DELETE | `/api/budgets/:id` | Delete a budget |
+
+### Categories
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/categories` | List all categories |
+| GET | `/api/categories?type=expense` | List expense categories |
+| GET | `/api/categories?type=income` | List income categories |
+| POST | `/api/categories` | Create a category |
+| PUT | `/api/categories/:id` | Update a category |
+| DELETE | `/api/categories/:id` | Delete a category |
+| POST | `/api/categories/reset` | Reset to defaults |
+
+### Transactions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
 | GET | `/api/transactions` | List all transactions |
 | POST | `/api/transactions` | Create a transaction |
 | PUT | `/api/transactions/:id` | Update a transaction |
 | DELETE | `/api/transactions/:id` | Delete a transaction |
+
+### Recurring Transactions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/recurring` | List recurring transactions |
+| POST | `/api/recurring` | Create recurring transaction |
+| PUT | `/api/recurring/:id` | Update recurring transaction |
+| DELETE | `/api/recurring/:id` | Delete recurring transaction |
+| POST | `/api/recurring/process` | Process due transactions |
+| GET | `/api/recurring/upcoming` | Get upcoming transactions |
 
 ### Savings Goals
 | Method | Endpoint | Description |
@@ -278,6 +354,7 @@ OPENAI_API_KEY=sk-your-key-here
 | PUT | `/api/goals/:id` | Update a goal |
 | DELETE | `/api/goals/:id` | Delete a goal |
 | POST | `/api/goals/:id/contributions` | Add contribution |
+| GET | `/api/goals/summary` | Get goals summary |
 
 ### Bank Statements
 | Method | Endpoint | Description |
@@ -298,6 +375,12 @@ OPENAI_API_KEY=sk-your-key-here
 | GET | `/api/house/valuation` | Get home valuation |
 | POST | `/api/house/mortgage/calculate` | Calculate mortgage |
 
+### Dashboard
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/dashboard/stats` | Get dashboard statistics |
+| GET | `/api/dashboard/charts` | Get chart data |
+
 ## Troubleshooting
 
 ### Database connection error
@@ -313,9 +396,14 @@ docker ps | grep postgres
 
 ### Port already in use
 
-If port 5173 or 3001 is in use, you can:
-- Kill the process using the port
-- Or modify the ports in `client/vite.config.ts` and `server/src/config/index.ts`
+If port 5173 or 3001 is in use:
+```bash
+# Find and kill process on port 3001
+lsof -ti:3001 | xargs kill -9
+
+# Find and kill process on port 5173
+lsof -ti:5173 | xargs kill -9
+```
 
 ### Prisma errors
 
@@ -325,11 +413,30 @@ npm run db:generate
 npm run db:push
 ```
 
+### Categories not loading
+
+Categories are auto-seeded on first access. If issues persist:
+1. Check server logs for errors
+2. Verify database connection
+3. Try resetting categories via the UI or API
+
 ### AI Service not working
 
 1. Check if the AI service is running: `curl http://localhost:8000/health`
 2. Check provider availability: `curl http://localhost:8000/api/documents/providers`
 3. For Ollama: ensure `ollama serve` is running
+
+## Database Schema
+
+Key models:
+- **User** - Authentication and user data
+- **Budget** - Spending limits by category
+- **Category** - User-configurable expense/income categories
+- **Transaction** - Income and expense records
+- **RecurringTransaction** - Scheduled recurring transactions
+- **SavingsGoal** - Savings targets with contributions
+- **BankAccount** - Connected bank accounts
+- **BankDocument** - Uploaded PDF statements
 
 ## License
 
