@@ -33,6 +33,7 @@ import DocumentReview from './pages/DocumentReview'
 import Categories from './pages/Categories'
 import { HealthDashboard, Workouts, Weight, Nutrition, Sleep } from './pages/health'
 import { TasksDashboard, TaskList, Projects } from './pages/tasks'
+import { LifeGoalsDashboard, GoalsList, Milestones } from './pages/life-goals'
 
 /**
  * Root application component that configures providers and routing.
@@ -123,6 +124,11 @@ function App() {
             <Route path="tasks" element={<TasksDashboard />} />
             <Route path="tasks/list" element={<TaskList />} />
             <Route path="tasks/projects" element={<Projects />} />
+
+            {/* Life Goals module routes */}
+            <Route path="life-goals" element={<LifeGoalsDashboard />} />
+            <Route path="life-goals/list" element={<GoalsList />} />
+            <Route path="life-goals/milestones" element={<Milestones />} />
           </Route>
         </Routes>
         </BrowserRouter>

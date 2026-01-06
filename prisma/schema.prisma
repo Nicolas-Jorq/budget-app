@@ -36,6 +36,8 @@ model User {
   projects              Project[]
   tasks                 Task[]
   labels                Label[]
+  // Life Goals module relations
+  lifeGoals             LifeGoal[]
 
   @@map("users")
 }
@@ -605,4 +607,66 @@ model TaskLabel {
 
   @@unique([taskId, labelId])
   @@map("task_labels")
+}
+
+// ==========================================
+// Life Goals Module - Non-financial life objectives
+// ==========================================
+
+enum LifeGoalCategory {
+  CAREER        // Professional achievements
+  PERSONAL      // Self-improvement
+  TRAVEL        // Places to visit
+  LEARNING      // Skills, education
+  RELATIONSHIPS // Family, friends, social
+  HEALTH        // Fitness, wellness (non-tracked)
+  CREATIVE      // Art, music, writing
+  ADVENTURE     // Experiences, bucket list
+  OTHER
+}
+
+enum LifeGoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  ABANDONED
+}
+
+/// Life goal - non-financial objectives and dreams
+model LifeGoal {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  category     LifeGoalCategory
+  status       LifeGoalStatus   @default(NOT_STARTED)
+  targetDate   DateTime?        // When you want to achieve this
+  completedAt  DateTime?
+  priority     Int              @default(2) // 1=High, 2=Medium, 3=Low
+  imageUrl     String?          // Vision board image
+  notes        String?          // Reflections, progress notes
+  milestones   LifeMilestone[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@map("life_goals")
+}
+
+/// Milestone for tracking progress toward a life goal
+model LifeMilestone {
+  id          String    @id @default(cuid())
+  goalId      String
+  goal        LifeGoal  @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  targetDate  DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("life_milestones")
 }

@@ -13,9 +13,9 @@ const prisma = new PrismaClient()
 
 /**
  * Default modules enabled for new users.
- * FINANCE is the core module, HEALTH and TASKS are enabled by default.
+ * FINANCE is the core module, HEALTH, TASKS, and LIFE_GOALS are enabled by default.
  */
-const DEFAULT_MODULES: ModuleType[] = ['FINANCE', 'HEALTH', 'TASKS']
+const DEFAULT_MODULES: ModuleType[] = ['FINANCE', 'HEALTH', 'TASKS', 'LIFE_GOALS']
 
 /**
  * Seed default modules for a user if they're missing any.
