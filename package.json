@@ -4,6 +4,7 @@
   "description": "Full-stack budget tracking application",
   "private": true,
   "workspaces": [
+    "packages/*",
     "client",
     "server"
   ],

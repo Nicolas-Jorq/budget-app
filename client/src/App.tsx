@@ -16,6 +16,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ModuleProvider } from './modules/core'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -72,6 +73,8 @@ function App() {
     <ThemeProvider>
       {/* AuthProvider wraps routes to provide auth state throughout */}
       <AuthProvider>
+        {/* ModuleProvider manages which modules are enabled for the user */}
+        <ModuleProvider>
         <BrowserRouter>
         <Routes>
           {/* Public routes - accessible without authentication */}
@@ -104,6 +107,7 @@ function App() {
           </Route>
         </Routes>
         </BrowserRouter>
+        </ModuleProvider>
       </AuthProvider>
     </ThemeProvider>
   )

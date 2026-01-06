@@ -14,6 +14,7 @@ model User {
   password              String
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  // Finance module relations
   budgets               Budget[]
   transactions          Transaction[]
   savingsGoals          SavingsGoal[]
@@ -21,8 +22,51 @@ model User {
   bankDocuments         BankDocument[]
   recurringTransactions RecurringTransaction[]
   categories            Category[]
+  // Module system relations
+  modules               UserModule[]
+  obsidianSync          ObsidianSync?
 
   @@map("users")
+}
+
+// ==========================================
+// Module System - Enables multi-domain architecture
+// ==========================================
+
+enum ModuleType {
+  FINANCE      // Budgets, transactions, savings goals
+  HEALTH       // Meals, exercise, health metrics
+  TASKS        // Todos, projects, deadlines
+  LIFE_GOALS   // Non-financial life objectives
+}
+
+/// Tracks which modules are enabled for each user
+model UserModule {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module    ModuleType
+  enabledAt DateTime   @default(now())
+  settings  Json?      // Module-specific user preferences
+
+  @@unique([userId, module])
+  @@map("user_modules")
+}
+
+/// Obsidian vault integration configuration
+model ObsidianSync {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vaultPath    String?   // Local path to Obsidian vault
+  lastExport   DateTime?
+  lastImport   DateTime?
+  syncSettings Json?     // What to sync, frequency, folder structure
+  isEnabled    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("obsidian_syncs")
 }
 
 // ==========================================
