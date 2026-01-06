@@ -4,18 +4,8 @@
  * @module pages/life-goals/LifeGoalsDashboard
  */
 
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../../services/api'
-
-interface DashboardStats {
-  totalGoals: number
-  inProgressGoals: number
-  completedGoals: number
-  goalsByCategory: Record<string, number>
-  upcomingMilestones: number
-  recentlyCompleted: number
-}
+import { useGoalsDashboard } from '../../hooks/queries/useGoals'
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   CAREER: { label: 'Career', color: '#3B82F6', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
@@ -30,26 +20,9 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: stri
 }
 
 export default function LifeGoalsDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data: stats, isLoading } = useGoalsDashboard()
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const response = await api.get<DashboardStats>('/life-goals/dashboard')
-      setStats(response.data)
-    } catch (err) {
-      console.error('Failed to fetch dashboard:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />

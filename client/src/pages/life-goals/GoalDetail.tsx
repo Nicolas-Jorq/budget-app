@@ -9,7 +9,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
-import api from '../../services/api'
+import {
+  useGoal,
+  useUpdateGoal,
+  useDeleteGoal,
+  useCreateMilestone,
+  useUpdateMilestone,
+  useToggleMilestone,
+  useDeleteMilestone,
+} from '../../hooks/queries/useGoals'
 
 type LifeGoalCategory = 'CAREER' | 'PERSONAL' | 'TRAVEL' | 'LEARNING' | 'RELATIONSHIPS' | 'HEALTH' | 'CREATIVE' | 'ADVENTURE' | 'OTHER'
 type LifeGoalStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'ABANDONED'
@@ -24,17 +32,7 @@ interface Milestone {
   sortOrder: number
 }
 
-interface LifeGoal {
-  id: string
-  title: string
-  description: string | null
-  category: LifeGoalCategory
-  status: LifeGoalStatus
-  targetDate: string | null
-  priority: number
-  notes: string | null
-  milestones: Milestone[]
-}
+// LifeGoal type is provided by useGoal hook
 
 const CATEGORY_OPTIONS: { value: LifeGoalCategory; label: string; color: string }[] = [
   { value: 'CAREER', label: 'Career', color: '#3B82F6' },
@@ -67,9 +65,15 @@ export default function GoalDetail() {
   const navigate = useNavigate()
   const { showToast } = useToast()
 
-  const [goal, setGoal] = useState<LifeGoal | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  // React Query hooks
+  const { data: goal, isLoading } = useGoal(id)
+  const updateGoalMutation = useUpdateGoal()
+  const deleteGoalMutation = useDeleteGoal()
+  const createMilestoneMutation = useCreateMilestone()
+  const updateMilestoneMutation = useUpdateMilestone()
+  const toggleMilestoneMutation = useToggleMilestone()
+  const deleteMilestoneMutation = useDeleteMilestone()
+
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     title: '',
@@ -90,32 +94,20 @@ export default function GoalDetail() {
     targetDate: '',
   })
 
+  // Update edit form when goal data loads
   useEffect(() => {
-    if (id) fetchGoal()
-  }, [id])
-
-  const fetchGoal = async () => {
-    try {
-      setLoading(true)
-      const response = await api.get<LifeGoal>(`/life-goals/${id}`)
-      setGoal(response.data)
+    if (goal) {
       setEditForm({
-        title: response.data.title,
-        description: response.data.description || '',
-        category: response.data.category,
-        status: response.data.status,
-        targetDate: response.data.targetDate?.split('T')[0] || '',
-        priority: response.data.priority,
-        notes: response.data.notes || '',
+        title: goal.title,
+        description: goal.description || '',
+        category: goal.category,
+        status: goal.status,
+        targetDate: goal.targetDate?.split('T')[0] || '',
+        priority: goal.priority,
+        notes: goal.notes || '',
       })
-    } catch (err) {
-      console.error('Failed to fetch goal:', err)
-      showToast('error', 'Failed to load goal')
-      navigate('/life-goals/list')
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [goal])
 
   const handleSaveGoal = async () => {
     if (!editForm.title.trim()) {
@@ -124,24 +116,22 @@ export default function GoalDetail() {
     }
 
     try {
-      setSaving(true)
-      await api.put(`/life-goals/${id}`, {
-        title: editForm.title,
-        description: editForm.description || undefined,
-        category: editForm.category,
-        status: editForm.status,
-        targetDate: editForm.targetDate || undefined,
-        priority: editForm.priority,
-        notes: editForm.notes || undefined,
+      await updateGoalMutation.mutateAsync({
+        id: id!,
+        data: {
+          title: editForm.title,
+          description: editForm.description || undefined,
+          category: editForm.category,
+          status: editForm.status,
+          targetDate: editForm.targetDate || undefined,
+          priority: editForm.priority,
+          notes: editForm.notes || undefined,
+        },
       })
       showToast('success', 'Goal updated successfully')
       setIsEditing(false)
-      fetchGoal()
     } catch (err) {
-      console.error('Failed to update goal:', err)
       showToast('error', 'Failed to update goal')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -149,11 +139,10 @@ export default function GoalDetail() {
     if (!confirm('Delete this goal and all its milestones? This cannot be undone.')) return
 
     try {
-      await api.delete(`/life-goals/${id}`)
+      await deleteGoalMutation.mutateAsync(id!)
       showToast('success', 'Goal deleted')
       navigate('/life-goals/list')
     } catch (err) {
-      console.error('Failed to delete goal:', err)
       showToast('error', 'Failed to delete goal')
     }
   }
@@ -166,17 +155,18 @@ export default function GoalDetail() {
     }
 
     try {
-      await api.post(`/life-goals/${id}/milestones`, {
-        title: milestoneForm.title,
-        description: milestoneForm.description || undefined,
-        targetDate: milestoneForm.targetDate || undefined,
+      await createMilestoneMutation.mutateAsync({
+        goalId: id!,
+        data: {
+          title: milestoneForm.title,
+          description: milestoneForm.description || undefined,
+          targetDate: milestoneForm.targetDate || undefined,
+        },
       })
       showToast('success', 'Milestone added')
       setMilestoneForm({ title: '', description: '', targetDate: '' })
       setShowMilestoneForm(false)
-      fetchGoal()
     } catch (err) {
-      console.error('Failed to add milestone:', err)
       showToast('error', 'Failed to add milestone')
     }
   }
@@ -188,27 +178,26 @@ export default function GoalDetail() {
     }
 
     try {
-      await api.put(`/life-goals/milestones/${editingMilestone.id}`, {
-        title: milestoneForm.title,
-        description: milestoneForm.description || undefined,
-        targetDate: milestoneForm.targetDate || undefined,
+      await updateMilestoneMutation.mutateAsync({
+        id: editingMilestone.id,
+        data: {
+          title: milestoneForm.title,
+          description: milestoneForm.description || undefined,
+          targetDate: milestoneForm.targetDate || undefined,
+        },
       })
       showToast('success', 'Milestone updated')
       setMilestoneForm({ title: '', description: '', targetDate: '' })
       setEditingMilestone(null)
-      fetchGoal()
     } catch (err) {
-      console.error('Failed to update milestone:', err)
       showToast('error', 'Failed to update milestone')
     }
   }
 
   const handleToggleMilestone = async (milestoneId: string) => {
     try {
-      await api.patch(`/life-goals/milestones/${milestoneId}/toggle`)
-      fetchGoal()
+      await toggleMilestoneMutation.mutateAsync(milestoneId)
     } catch (err) {
-      console.error('Failed to toggle milestone:', err)
       showToast('error', 'Failed to update milestone')
     }
   }
@@ -217,11 +206,9 @@ export default function GoalDetail() {
     if (!confirm('Delete this milestone?')) return
 
     try {
-      await api.delete(`/life-goals/milestones/${milestoneId}`)
+      await deleteMilestoneMutation.mutateAsync(milestoneId)
       showToast('success', 'Milestone deleted')
-      fetchGoal()
     } catch (err) {
-      console.error('Failed to delete milestone:', err)
       showToast('error', 'Failed to delete milestone')
     }
   }
@@ -245,7 +232,7 @@ export default function GoalDetail() {
     return CATEGORY_OPTIONS.find((c) => c.value === category) || CATEGORY_OPTIONS[8]
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         {/* Skeleton loader */}
@@ -379,10 +366,10 @@ export default function GoalDetail() {
             <div className="flex gap-2">
               <button
                 onClick={handleSaveGoal}
-                disabled={saving}
+                disabled={updateGoalMutation.isPending}
                 className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {updateGoalMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
               <button
                 onClick={() => setIsEditing(false)}

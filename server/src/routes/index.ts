@@ -15,6 +15,7 @@
  */
 
 import { Router } from 'express'
+import { APP_CONFIG } from '../config/app.js'
 
 // Auth routes (module-agnostic)
 import authRoutes from './auth.js'
@@ -42,8 +43,8 @@ const router = Router()
 // API root - updated to reflect module structure
 router.get('/', (_req, res) => {
   res.json({
-    message: 'Budget App API',
-    version: '1.7.0',
+    message: `${APP_CONFIG.name} API`,
+    version: APP_CONFIG.version,
     modules: {
       core: '/api/modules',
       finance: '/api/finance',

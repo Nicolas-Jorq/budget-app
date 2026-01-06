@@ -9,6 +9,7 @@
 
 import { NavLink, useLocation } from 'react-router-dom'
 import { MODULE_CONFIGS, ModuleType } from '../modules/core'
+import { APP_CONFIG } from '../config/app'
 
 /**
  * Navigation item configuration.
@@ -126,7 +127,7 @@ export default function Sidebar() {
 
       {/* Footer with version */}
       <div className="p-4 border-t border-border-subtle">
-        <p className="text-xs text-content-tertiary">v1.5.0</p>
+        <p className="text-xs text-content-tertiary">v{APP_CONFIG.version}</p>
       </div>
     </aside>
   )
