@@ -11,4 +11,13 @@ export const dashboardController = {
       res.status(500).json({ message: 'Failed to fetch dashboard stats' })
     }
   },
+
+  async getChartData(req: AuthRequest, res: Response) {
+    try {
+      const chartData = await dashboardService.getChartData(req.userId!)
+      res.json(chartData)
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch chart data' })
+    }
+  },
 }

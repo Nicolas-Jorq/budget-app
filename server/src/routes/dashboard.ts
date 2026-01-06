@@ -7,5 +7,6 @@ const router = Router()
 router.use(authenticate)
 
 router.get('/stats', dashboardController.getStats)
+router.get('/charts', dashboardController.getChartData)
 
 export default router
