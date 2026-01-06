@@ -7,6 +7,7 @@ import goalsRoutes from './goals.js'
 import houseRoutes from './house.js'
 import bankAccountRoutes from './bank-accounts.js'
 import documentRoutes from './documents.js'
+import recurringTransactionRoutes from './recurring-transactions.js'
 
 const router = Router()
 
@@ -14,11 +15,12 @@ const router = Router()
 router.get('/', (_req, res) => {
   res.json({
     message: 'Budget App API',
-    version: '1.1.0',
+    version: '1.2.0',
     endpoints: {
       auth: '/api/auth',
       budgets: '/api/budgets',
       transactions: '/api/transactions',
+      recurring: '/api/recurring',
       dashboard: '/api/dashboard',
       goals: '/api/goals',
       house: '/api/house',
@@ -32,6 +34,7 @@ router.get('/', (_req, res) => {
 router.use('/auth', authRoutes)
 router.use('/budgets', budgetRoutes)
 router.use('/transactions', transactionRoutes)
+router.use('/recurring', recurringTransactionRoutes)
 router.use('/dashboard', dashboardRoutes)
 router.use('/goals', goalsRoutes)
 router.use('/house', houseRoutes)

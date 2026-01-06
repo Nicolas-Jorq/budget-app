@@ -1090,3 +1090,154 @@ export const TRANSACTION_STATUS_INFO: Record<PendingTransactionStatus, { label: 
   IMPORTED: { label: 'Imported', color: 'bg-blue-500' },
   DUPLICATE: { label: 'Duplicate', color: 'bg-orange-500' },
 }
+
+// =============================================================================
+// RECURRING TRANSACTIONS TYPES
+// =============================================================================
+
+/**
+ * Frequency options for recurring transactions.
+ *
+ * @typedef {string} RecurrenceFrequency
+ * - DAILY: Every day
+ * - WEEKLY: Every week
+ * - BIWEEKLY: Every two weeks
+ * - MONTHLY: Every month
+ * - QUARTERLY: Every three months
+ * - YEARLY: Every year
+ */
+export type RecurrenceFrequency =
+  | 'DAILY'
+  | 'WEEKLY'
+  | 'BIWEEKLY'
+  | 'MONTHLY'
+  | 'QUARTERLY'
+  | 'YEARLY'
+
+/**
+ * Represents a recurring transaction template.
+ *
+ * @interface RecurringTransaction
+ * @property {string} id - Unique identifier
+ * @property {string} name - User-friendly name (e.g., "Netflix Subscription")
+ * @property {string} description - Description for generated transactions
+ * @property {number} amount - Transaction amount
+ * @property {'income' | 'expense'} type - Transaction type
+ * @property {string} category - Transaction category
+ * @property {RecurrenceFrequency} frequency - How often transaction repeats
+ * @property {string} startDate - When recurrence started
+ * @property {string | null} endDate - Optional end date
+ * @property {number | null} dayOfMonth - Day of month for monthly (1-31)
+ * @property {number | null} dayOfWeek - Day of week for weekly (0-6)
+ * @property {string | null} budgetId - Optional linked budget
+ * @property {boolean} isActive - Whether currently active
+ * @property {string | null} lastGeneratedDate - Last transaction generated
+ * @property {string} nextDueDate - Next scheduled date
+ * @property {string} userId - Owner's user ID
+ * @property {string} createdAt - Creation timestamp
+ * @property {string} updatedAt - Last update timestamp
+ * @property {Object} [_count] - Generated transaction count
+ * @property {Object} [budget] - Linked budget details
+ */
+export interface RecurringTransaction {
+  id: string
+  name: string
+  description: string
+  amount: number
+  type: 'income' | 'expense'
+  category: string
+  frequency: RecurrenceFrequency
+  startDate: string
+  endDate: string | null
+  dayOfMonth: number | null
+  dayOfWeek: number | null
+  budgetId: string | null
+  isActive: boolean
+  lastGeneratedDate: string | null
+  nextDueDate: string
+  userId: string
+  createdAt: string
+  updatedAt: string
+  _count?: {
+    generatedTransactions: number
+  }
+  budget?: {
+    id: string
+    name: string
+    category: string
+  } | null
+}
+
+/**
+ * Input for creating a recurring transaction.
+ *
+ * @interface CreateRecurringTransactionInput
+ */
+export interface CreateRecurringTransactionInput {
+  name: string
+  description: string
+  amount: number
+  type: 'income' | 'expense'
+  category: string
+  frequency: RecurrenceFrequency
+  startDate: string
+  endDate?: string
+  dayOfMonth?: number
+  dayOfWeek?: number
+  budgetId?: string
+}
+
+/**
+ * Input for updating a recurring transaction.
+ *
+ * @interface UpdateRecurringTransactionInput
+ */
+export interface UpdateRecurringTransactionInput {
+  name?: string
+  description?: string
+  amount?: number
+  type?: 'income' | 'expense'
+  category?: string
+  frequency?: RecurrenceFrequency
+  startDate?: string
+  endDate?: string | null
+  dayOfMonth?: number | null
+  dayOfWeek?: number | null
+  budgetId?: string | null
+  isActive?: boolean
+}
+
+/**
+ * Upcoming recurring transaction preview.
+ *
+ * @interface UpcomingRecurring
+ */
+export interface UpcomingRecurring {
+  recurring: RecurringTransaction
+  dueDate: string
+}
+
+/**
+ * Display configuration for recurrence frequencies.
+ */
+export const FREQUENCY_INFO: Record<RecurrenceFrequency, { label: string; shortLabel: string }> = {
+  DAILY: { label: 'Daily', shortLabel: 'Daily' },
+  WEEKLY: { label: 'Weekly', shortLabel: 'Wkly' },
+  BIWEEKLY: { label: 'Every 2 Weeks', shortLabel: 'Bi-Wk' },
+  MONTHLY: { label: 'Monthly', shortLabel: 'Mo' },
+  QUARTERLY: { label: 'Quarterly', shortLabel: 'Qtr' },
+  YEARLY: { label: 'Yearly', shortLabel: 'Yr' },
+}
+
+/**
+ * Days of week for weekly recurring transactions.
+ */
+export const DAYS_OF_WEEK = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+]

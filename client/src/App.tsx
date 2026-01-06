@@ -23,6 +23,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Budgets from './pages/Budgets'
 import Transactions from './pages/Transactions'
+import RecurringTransactions from './pages/RecurringTransactions'
 import Goals from './pages/Goals'
 import BabyGoalDetail from './pages/BabyGoalDetail'
 import HouseGoalDetail from './pages/HouseGoalDetail'
@@ -90,6 +91,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="budgets" element={<Budgets />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="recurring" element={<RecurringTransactions />} />
             <Route path="goals" element={<Goals />} />
             {/* Dynamic goal detail routes with type-specific pages */}
             <Route path="goals/:id/baby" element={<BabyGoalDetail />} />

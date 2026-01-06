@@ -8,52 +8,95 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String
-  password      String
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  budgets       Budget[]
-  transactions  Transaction[]
-  savingsGoals  SavingsGoal[]
-  bankAccounts  BankAccount[]
-  bankDocuments BankDocument[]
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  name                  String
+  password              String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  budgets               Budget[]
+  transactions          Transaction[]
+  savingsGoals          SavingsGoal[]
+  bankAccounts          BankAccount[]
+  bankDocuments         BankDocument[]
+  recurringTransactions RecurringTransaction[]
 
   @@map("users")
 }
 
 model Budget {
-  id           String        @id @default(cuid())
-  name         String
-  amount       Decimal       @db.Decimal(10, 2)
-  spent        Decimal       @default(0) @db.Decimal(10, 2)
-  category     String
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                    String                 @id @default(cuid())
+  name                  String
+  amount                Decimal                @db.Decimal(10, 2)
+  spent                 Decimal                @default(0) @db.Decimal(10, 2)
+  category              String
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 
   @@map("budgets")
 }
 
 model Transaction {
-  id             String        @id @default(cuid())
-  description    String
-  amount         Decimal       @db.Decimal(10, 2)
-  type           String        // 'income' or 'expense'
-  category       String
-  date           DateTime
-  budgetId       String?
-  budget         Budget?       @relation(fields: [budgetId], references: [id], onDelete: SetNull)
-  userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contributions  Contribution[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                     String               @id @default(cuid())
+  description            String
+  amount                 Decimal              @db.Decimal(10, 2)
+  type                   String               // 'income' or 'expense'
+  category               String
+  date                   DateTime
+  budgetId               String?
+  budget                 Budget?              @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  userId                 String
+  user                   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions          Contribution[]
+  recurringTransactionId String?              // If generated from recurring
+  recurringTransaction   RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 
   @@map("transactions")
+}
+
+// ==========================================
+// Recurring Transactions System
+// ==========================================
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model RecurringTransaction {
+  id                String              @id @default(cuid())
+  name              String              // User-friendly name (e.g., "Netflix Subscription")
+  description       String              // Description for generated transactions
+  amount            Decimal             @db.Decimal(10, 2)
+  type              String              // 'income' or 'expense'
+  category          String
+  frequency         RecurrenceFrequency
+  startDate         DateTime            // When the recurrence starts
+  endDate           DateTime?           // Optional end date
+  dayOfMonth        Int?                // For MONTHLY: 1-31 (null = same as start date)
+  dayOfWeek         Int?                // For WEEKLY: 0-6 (Sunday-Saturday)
+  budgetId          String?
+  budget            Budget?             @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  isActive          Boolean             @default(true)
+  lastGeneratedDate DateTime?           // Last time a transaction was generated
+  nextDueDate       DateTime            // Next scheduled transaction date
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedTransactions Transaction[]   // Transactions created from this recurring
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("recurring_transactions")
 }
 
 // Savings Goals System
