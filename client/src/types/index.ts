@@ -241,3 +241,179 @@ export const MILESTONE_CATEGORY_INFO: Record<MilestoneCategory, { label: string;
   HEALTHCARE: { label: 'Healthcare', icon: '🏥', color: '#ef4444', defaultAmount: 2000 },
   EDUCATION: { label: 'Education Fund', icon: '🎓', color: '#6366f1', defaultAmount: 5000 },
 }
+
+// House Goals Types
+export type PropertyType =
+  | 'single_family'
+  | 'condo'
+  | 'townhouse'
+  | 'multi_family'
+  | 'apartment'
+  | 'land'
+  | 'other'
+
+export interface HouseGoal {
+  id: string
+  goalId: string
+  targetPrice: number
+  targetLocation: string | null
+  targetBedrooms: number | null
+  targetBathrooms: number | null
+  downPaymentPct: number
+  propertyType: PropertyType | null
+  savedSearches: unknown | null
+  createdAt: string
+  updatedAt: string
+  savedProperties?: PropertySnapshot[]
+}
+
+export interface HouseGoalMetadata {
+  targetPrice?: number
+  targetLocation?: string
+  targetBedrooms?: number
+  targetBathrooms?: number
+  downPaymentPct?: number
+  propertyType?: PropertyType
+}
+
+export interface PropertySnapshot {
+  id: string
+  houseGoalId: string
+  zpid: string | null
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  price: number
+  bedrooms: number | null
+  bathrooms: number | null
+  sqft: number | null
+  yearBuilt: number | null
+  propertyType: string | null
+  zestimate: number | null
+  imageUrl: string | null
+  listingUrl: string | null
+  isFavorite: boolean
+  notes: string | null
+  capturedAt: string
+}
+
+export interface PropertyListing {
+  id: string
+  address: string
+  city: string
+  state: string
+  zipCode: string
+  price: number
+  bedrooms: number
+  bathrooms: number
+  sqft: number
+  yearBuilt?: number
+  propertyType: PropertyType
+  imageUrl?: string
+  listingUrl?: string
+  latitude?: number
+  longitude?: number
+  lotSize?: number
+  description?: string
+  daysOnMarket?: number
+  pricePerSqft?: number
+}
+
+export interface HomeValuation {
+  address: string
+  zestimate: number
+  rentZestimate?: number
+  valueRange: {
+    low: number
+    high: number
+  }
+  lastUpdated: string
+  taxAssessment?: number
+  yearBuilt?: number
+  sqft?: number
+}
+
+export interface MortgageCalculation {
+  homePrice: number
+  downPayment: number
+  downPaymentPercent: number
+  loanAmount: number
+  interestRate: number
+  loanTermYears: number
+  monthlyPayment: number
+  monthlyBreakdown: {
+    principal: number
+    interest: number
+    propertyTax: number
+    homeInsurance: number
+    pmi?: number
+  }
+  totalPayment: number
+  totalInterest: number
+}
+
+export interface MarketInsight {
+  summary: string
+  analysis: string
+  factors: string[]
+  recommendation?: string
+  confidence: 'low' | 'medium' | 'high'
+  disclaimer: string
+}
+
+export interface HouseGoalSummary {
+  goal: {
+    id: string
+    name: string
+    targetAmount: number
+    currentAmount: number
+    deadline: string | null
+    isCompleted: boolean
+  }
+  houseDetails: {
+    targetPrice: number
+    targetLocation: string | null
+    targetBedrooms: number | null
+    targetBathrooms: number | null
+    downPaymentPct: number
+    propertyType: string | null
+  }
+  progress: {
+    downPaymentAmount: number
+    currentSaved: number
+    remainingForDownPayment: number
+    progressPercent: number
+  }
+  mortgageEstimate: MortgageCalculation
+  savedProperties: {
+    total: number
+    favorites: number
+  }
+}
+
+export interface ProviderStatus {
+  realEstate: {
+    type: string
+    name: string
+    available: boolean
+    missingEnv: string[]
+  }
+  llm: {
+    type: string
+    name: string
+    available: boolean
+    missingEnv: string[]
+  }
+}
+
+// Property type display info
+export const PROPERTY_TYPE_INFO: Record<PropertyType, { label: string; icon: string }> = {
+  single_family: { label: 'Single Family', icon: '🏠' },
+  condo: { label: 'Condo', icon: '🏢' },
+  townhouse: { label: 'Townhouse', icon: '🏘️' },
+  multi_family: { label: 'Multi-Family', icon: '🏗️' },
+  apartment: { label: 'Apartment', icon: '🏬' },
+  land: { label: 'Land', icon: '🌳' },
+  other: { label: 'Other', icon: '🏛️' },
+}

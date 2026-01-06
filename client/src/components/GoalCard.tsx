@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { SavingsGoal, GOAL_TYPE_INFO, BabyGoalMetadata } from '../types'
+import { SavingsGoal, GOAL_TYPE_INFO, BabyGoalMetadata, HouseGoalMetadata, PROPERTY_TYPE_INFO, PropertyType } from '../types'
 
 interface GoalCardProps {
   goal: SavingsGoal
@@ -10,7 +10,9 @@ interface GoalCardProps {
 
 export default function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
   const isBabyGoal = goal.type === 'BABY'
+  const isHouseGoal = goal.type === 'HOUSE'
   const babyMetadata = isBabyGoal ? goal.metadata as BabyGoalMetadata | null : null
+  const houseMetadata = isHouseGoal ? goal.metadata as HouseGoalMetadata | null : null
   const currentAmount = Number(goal.currentAmount)
   const targetAmount = Number(goal.targetAmount)
   const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0
@@ -134,6 +136,41 @@ export default function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalC
         </div>
       )}
 
+      {/* House Goal Info */}
+      {isHouseGoal && houseMetadata && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="flex flex-col gap-1 text-sm text-blue-700 dark:text-blue-300">
+            {houseMetadata.targetLocation && (
+              <div className="flex items-center gap-2">
+                <span>📍</span>
+                <span>{houseMetadata.targetLocation}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-4 flex-wrap">
+              {houseMetadata.targetPrice && (
+                <span>
+                  ${houseMetadata.targetPrice.toLocaleString('en-US')} target
+                </span>
+              )}
+              {houseMetadata.targetBedrooms && (
+                <span>{houseMetadata.targetBedrooms} bed</span>
+              )}
+              {houseMetadata.targetBathrooms && (
+                <span>{houseMetadata.targetBathrooms} bath</span>
+              )}
+              {houseMetadata.propertyType && PROPERTY_TYPE_INFO[houseMetadata.propertyType as PropertyType] && (
+                <span>{PROPERTY_TYPE_INFO[houseMetadata.propertyType as PropertyType].icon}</span>
+              )}
+            </div>
+            {houseMetadata.downPaymentPct && (
+              <span className="text-xs opacity-75">
+                {houseMetadata.downPaymentPct}% down payment goal
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2">
         {!goal.isCompleted && (
@@ -148,6 +185,15 @@ export default function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalC
         {isBabyGoal && (
           <Link
             to={`/goals/${goal.id}/baby`}
+            className="flex-1 py-2 px-4 rounded-md border-2 font-medium text-center transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+            style={{ borderColor: displayColor, color: displayColor }}
+          >
+            View Details
+          </Link>
+        )}
+        {isHouseGoal && (
+          <Link
+            to={`/goals/${goal.id}/house`}
             className="flex-1 py-2 px-4 rounded-md border-2 font-medium text-center transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
             style={{ borderColor: displayColor, color: displayColor }}
           >

@@ -10,6 +10,7 @@ import Budgets from './pages/Budgets'
 import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
 import BabyGoalDetail from './pages/BabyGoalDetail'
+import HouseGoalDetail from './pages/HouseGoalDetail'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="transactions" element={<Transactions />} />
             <Route path="goals" element={<Goals />} />
             <Route path="goals/:id/baby" element={<BabyGoalDetail />} />
+            <Route path="goals/:id/house" element={<HouseGoalDetail />} />
           </Route>
         </Routes>
         </BrowserRouter>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import api from '../services/api'
-import { SavingsGoal, GoalType, GOAL_TYPE_INFO, BabyGoalMetadata } from '../types'
+import { SavingsGoal, GoalType, GOAL_TYPE_INFO, BabyGoalMetadata, HouseGoalMetadata, PropertyType, PROPERTY_TYPE_INFO } from '../types'
 
 interface GoalFormProps {
   goal: SavingsGoal | null
@@ -19,9 +19,13 @@ const goalTypes: GoalType[] = [
   'CUSTOM',
 ]
 
+const propertyTypes: PropertyType[] = ['single_family', 'condo', 'townhouse', 'multi_family', 'apartment', 'land', 'other']
+
 export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
   // Extract baby metadata if editing a baby goal
   const existingBabyMetadata = goal?.type === 'BABY' ? goal.metadata as BabyGoalMetadata | null : null
+  // Extract house metadata if editing a house goal
+  const existingHouseMetadata = goal?.type === 'HOUSE' ? goal.metadata as HouseGoalMetadata | null : null
 
   const [name, setName] = useState(goal?.name ?? '')
   const [type, setType] = useState<GoalType>(goal?.type ?? 'CUSTOM')
@@ -48,6 +52,14 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
   )
   const [createDefaultMilestones, setCreateDefaultMilestones] = useState(!goal)
 
+  // House-specific fields
+  const [targetPrice, setTargetPrice] = useState(existingHouseMetadata?.targetPrice?.toString() ?? '')
+  const [targetLocation, setTargetLocation] = useState(existingHouseMetadata?.targetLocation ?? '')
+  const [targetBedrooms, setTargetBedrooms] = useState(existingHouseMetadata?.targetBedrooms?.toString() ?? '')
+  const [targetBathrooms, setTargetBathrooms] = useState(existingHouseMetadata?.targetBathrooms?.toString() ?? '')
+  const [downPaymentPct, setDownPaymentPct] = useState(existingHouseMetadata?.downPaymentPct?.toString() ?? '20')
+  const [propertyType, setPropertyType] = useState<PropertyType | ''>(existingHouseMetadata?.propertyType ?? '')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -55,13 +67,22 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
 
     try {
       // Build baby metadata if type is BABY
-      let metadata: BabyGoalMetadata | undefined
+      let metadata: BabyGoalMetadata | HouseGoalMetadata | undefined
       if (type === 'BABY') {
         metadata = {
           babyName: babyName || undefined,
           isPregnancy,
           expectedDueDate: isPregnancy && expectedDueDate ? expectedDueDate : undefined,
           actualBirthDate: !isPregnancy && actualBirthDate ? actualBirthDate : undefined,
+        }
+      } else if (type === 'HOUSE') {
+        metadata = {
+          targetPrice: targetPrice ? parseFloat(targetPrice) : undefined,
+          targetLocation: targetLocation || undefined,
+          targetBedrooms: targetBedrooms ? parseInt(targetBedrooms, 10) : undefined,
+          targetBathrooms: targetBathrooms ? parseFloat(targetBathrooms) : undefined,
+          downPaymentPct: downPaymentPct ? parseFloat(downPaymentPct) : 20,
+          propertyType: propertyType || undefined,
         }
       }
 
@@ -77,6 +98,22 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
       let createdGoal
       if (goal) {
         await api.put(`/goals/${goal.id}`, data)
+
+        // Update house goal config if editing a house goal
+        if (type === 'HOUSE' && targetPrice) {
+          try {
+            await api.put(`/goals/${goal.id}/house`, {
+              targetPrice: parseFloat(targetPrice),
+              targetLocation: targetLocation || null,
+              targetBedrooms: targetBedrooms ? parseInt(targetBedrooms, 10) : null,
+              targetBathrooms: targetBathrooms ? parseFloat(targetBathrooms) : null,
+              downPaymentPct: parseFloat(downPaymentPct) || 20,
+              propertyType: propertyType || null,
+            })
+          } catch {
+            // House goal config might not exist yet for old goals
+          }
+        }
       } else {
         const response = await api.post('/goals', data)
         createdGoal = response.data
@@ -84,6 +121,18 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
         // Create default milestones for new baby goals
         if (type === 'BABY' && createDefaultMilestones && createdGoal?.id) {
           await api.post(`/goals/${createdGoal.id}/milestones/defaults`)
+        }
+
+        // Create house goal config for new house goals
+        if (type === 'HOUSE' && createdGoal?.id && targetPrice) {
+          await api.post(`/goals/${createdGoal.id}/house`, {
+            targetPrice: parseFloat(targetPrice),
+            targetLocation: targetLocation || null,
+            targetBedrooms: targetBedrooms ? parseInt(targetBedrooms, 10) : null,
+            targetBathrooms: targetBathrooms ? parseFloat(targetBathrooms) : null,
+            downPaymentPct: parseFloat(downPaymentPct) || 20,
+            propertyType: propertyType || null,
+          })
         }
       }
       onSuccess()
@@ -289,6 +338,126 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                   </label>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* House-specific fields */}
+          {type === 'HOUSE' && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>🏠</span> House Details
+              </h3>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Target Home Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={targetPrice}
+                    onChange={(e) => setTargetPrice(e.target.value)}
+                    placeholder="450000"
+                    className="w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Target Location
+                </label>
+                <input
+                  type="text"
+                  value={targetLocation}
+                  onChange={(e) => setTargetLocation(e.target.value)}
+                  placeholder="e.g., Austin, TX or 78701"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Bedrooms
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={targetBedrooms}
+                    onChange={(e) => setTargetBedrooms(e.target.value)}
+                    placeholder="3"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Bathrooms
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={targetBathrooms}
+                    onChange={(e) => setTargetBathrooms(e.target.value)}
+                    placeholder="2"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Down Payment %
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={downPaymentPct}
+                    onChange={(e) => setDownPaymentPct(e.target.value)}
+                    placeholder="20"
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                  <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">%</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  20% or more avoids PMI (private mortgage insurance)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Property Type
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {propertyTypes.slice(0, 4).map((pt) => {
+                    const info = PROPERTY_TYPE_INFO[pt]
+                    return (
+                      <button
+                        key={pt}
+                        type="button"
+                        onClick={() => setPropertyType(propertyType === pt ? '' : pt)}
+                        className={`p-2 rounded-md border-2 transition-all flex flex-col items-center gap-1 ${
+                          propertyType === pt
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        }`}
+                      >
+                        <span className="text-lg">{info.icon}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 truncate w-full text-center">
+                          {info.label.split(' ')[0]}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
