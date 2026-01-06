@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
-  name         String
-  password     String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  budgets      Budget[]
-  transactions Transaction[]
-  savingsGoals SavingsGoal[]
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  password      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  budgets       Budget[]
+  transactions  Transaction[]
+  savingsGoals  SavingsGoal[]
+  bankAccounts  BankAccount[]
+  bankDocuments BankDocument[]
 
   @@map("users")
 }
@@ -172,4 +174,104 @@ model PropertySnapshot {
   capturedAt    DateTime  @default(now())
 
   @@map("property_snapshots")
+}
+
+// ==========================================
+// Bank Statement Import System
+// ==========================================
+
+enum AccountType {
+  CREDIT_CARD
+  CHECKING
+  SAVINGS
+  INVESTMENT
+}
+
+enum DocumentStatus {
+  PENDING      // Just uploaded
+  PROCESSING   // Being processed by AI
+  EXTRACTED    // Transactions extracted, awaiting review
+  REVIEWED     // User has reviewed
+  IMPORTED     // Transactions imported
+  FAILED       // Processing failed
+}
+
+enum PendingTransactionStatus {
+  PENDING      // Awaiting review
+  APPROVED     // User approved
+  REJECTED     // User rejected
+  IMPORTED     // Moved to Transaction table
+  DUPLICATE    // Detected as duplicate
+}
+
+// Track bank accounts and credit cards
+model BankAccount {
+  id           String       @id @default(cuid())
+  name         String       // "Chase Freedom", "Amex Gold", "BofA Checking"
+  bankName     String       // "Chase", "American Express", "Bank of America"
+  accountType  AccountType
+  lastFour     String?      // Last 4 digits for identification
+  isActive     Boolean      @default(true)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents    BankDocument[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("bank_accounts")
+}
+
+// Track uploaded bank statement documents
+model BankDocument {
+  id                  String               @id @default(cuid())
+  filename            String               // Stored filename (UUID)
+  originalName        String               // User's original filename
+  fileSize            Int                  // Size in bytes
+  mimeType            String               // application/pdf
+  filePath            String               // Path to stored file
+  status              DocumentStatus       @default(PENDING)
+  bankAccountId       String?
+  bankAccount         BankAccount?         @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  statementStartDate  DateTime?            // Statement period start
+  statementEndDate    DateTime?            // Statement period end
+  extractedData       Json?                // Raw LLM extraction output
+  processingError     String?              // Error message if failed
+  transactionCount    Int?                 // Number of transactions found
+  llmProvider         String?              // Which LLM was used (ollama, openai)
+  llmModel            String?              // Which model (llama3.2, gpt-4o-mini)
+  processingTimeMs    Int?                 // How long processing took
+  userId              String
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pendingTransactions PendingTransaction[]
+  uploadedAt          DateTime             @default(now())
+  processedAt         DateTime?
+  updatedAt           DateTime             @updatedAt
+
+  @@map("bank_documents")
+}
+
+// Staging table for extracted transactions awaiting review
+model PendingTransaction {
+  id            String                   @id @default(cuid())
+  documentId    String
+  document      BankDocument             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  date          DateTime
+  description   String
+  originalDescription String?            // Raw description from PDF
+  amount        Decimal                  @db.Decimal(10, 2)
+  type          String                   // INCOME or EXPENSE
+  category      String?                  // LLM-suggested category
+  suggestedCategories Json?              // Array of {category, confidence}
+  confidence    Float?                   // Overall confidence score 0-1
+  rawText       String?                  // Original line from PDF
+  lineNumber    Int?                     // Position in document
+  status        PendingTransactionStatus @default(PENDING)
+  userCategory  String?                  // User's override category
+  userNotes     String?                  // User's notes
+  importedTransactionId String?          // Link to Transaction after import
+  duplicateOfId String?                  // If duplicate, link to existing Transaction
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@map("pending_transactions")
 }
