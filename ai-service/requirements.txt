@@ -5,6 +5,7 @@ fastapi>=0.109.0
 uvicorn>=0.27.0
 pydantic>=2.6.0
 python-dotenv>=1.0.0
+python-multipart>=0.0.6  # For file uploads
 
 # HTTP Client
 httpx>=0.26.0
@@ -12,6 +13,7 @@ httpx>=0.26.0
 # Database
 asyncpg>=0.29.0
 sqlalchemy>=2.0.0
+greenlet>=3.0.0
 
 # Data Analysis & ML
 numpy>=1.26.0
@@ -20,3 +22,11 @@ scikit-learn>=1.4.0
 
 # Date handling
 python-dateutil>=2.8.0
+
+# PDF Processing
+pdfplumber>=0.10.0      # Best for table extraction
+PyPDF2>=3.0.0           # Basic PDF reading
+pdf2image>=1.16.0       # Convert PDF to images (for OCR fallback)
+
+# OCR (optional, for scanned documents)
+# pytesseract>=0.3.10   # Requires Tesseract installed

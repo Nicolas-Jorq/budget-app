@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
 
-from .routes import analytics, health
+from .routes import analytics, health, documents, transactions
 from .services.database import init_db, close_db
 
 load_dotenv()
@@ -55,19 +55,39 @@ app.add_middleware(
 # Register routes
 app.include_router(health.router, tags=["Health"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(transactions.router, prefix="/api/transactions", tags=["Transactions"])
 
 
 @app.get("/")
 async def root():
     return {
         "service": "Budget App AI Service",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "running",
         "endpoints": {
             "health": "/health",
-            "spending_patterns": "/api/analytics/spending-patterns/{user_id}",
-            "goal_predictions": "/api/analytics/goal-predictions/{user_id}",
-            "anomalies": "/api/analytics/anomalies/{user_id}",
-            "recommendations": "/api/analytics/recommendations/{user_id}",
+            "analytics": {
+                "spending_patterns": "/api/analytics/spending-patterns/{user_id}",
+                "goal_predictions": "/api/analytics/goal-predictions/{user_id}",
+                "anomalies": "/api/analytics/anomalies/{user_id}",
+                "recommendations": "/api/analytics/recommendations/{user_id}",
+            },
+            "documents": {
+                "providers": "/api/documents/providers",
+                "upload": "/api/documents/upload",
+                "process": "/api/documents/process/{document_id}",
+                "get_document": "/api/documents/document/{document_id}",
+                "user_documents": "/api/documents/user/{user_id}/documents",
+            },
+            "transactions": {
+                "update": "/api/transactions/{transaction_id}",
+                "approve": "/api/transactions/{transaction_id}/approve",
+                "reject": "/api/transactions/{transaction_id}/reject",
+                "bulk": "/api/transactions/bulk",
+                "import": "/api/transactions/import",
+                "check_duplicates": "/api/transactions/check-duplicates",
+                "summary": "/api/transactions/summary/{document_id}",
+            },
         },
     }
