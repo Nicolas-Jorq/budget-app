@@ -1,7 +1,47 @@
+/**
+ * @fileoverview User registration page component for account creation.
+ *
+ * This page allows new users to create an account by providing their name,
+ * email, and password. It includes client-side validation for password
+ * requirements and matching password confirmation.
+ *
+ * Registration Flow:
+ * 1. User fills in name, email, password, and confirmation
+ * 2. Client-side validation checks password requirements
+ * 3. Form submission triggers registration via AuthContext
+ * 4. On success: User is logged in and redirected to dashboard
+ * 5. On failure: Error message displayed to user
+ *
+ * Validation Rules:
+ * - Password must be at least 6 characters
+ * - Password and confirmation must match
+ *
+ * @module pages/Register
+ */
+
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+/**
+ * Registration page component for new user account creation.
+ *
+ * This component renders a registration form with name, email, password,
+ * and password confirmation fields. It performs client-side validation
+ * before submitting to the server and handles success/error states.
+ *
+ * State Management:
+ * - name/email/password/confirmPassword: Form input values
+ * - error: Error message for validation or server errors
+ * - isLoading: Loading state during registration request
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Registration page with form
+ *
+ * @example
+ * // Used in router configuration for public routes
+ * <Route path="/register" element={<Register />} />
+ */
 export default function Register() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -12,15 +52,21 @@ export default function Register() {
   const { register } = useAuth()
   const navigate = useNavigate()
 
+  /**
+   * Handles form submission for user registration.
+   * Performs client-side validation before making API request.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
+    // Client-side validation: passwords must match
     if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
+    // Client-side validation: minimum password length
     if (password.length < 6) {
       setError('Password must be at least 6 characters')
       return
@@ -29,9 +75,12 @@ export default function Register() {
     setIsLoading(true)
 
     try {
+      // Register user via AuthContext (also logs in on success)
       await register(email, name, password)
+      // Redirect to dashboard after successful registration
       navigate('/')
     } catch (err) {
+      // Display error message from server or generic message
       setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
       setIsLoading(false)

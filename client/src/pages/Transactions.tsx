@@ -1,14 +1,54 @@
+/**
+ * @fileoverview Transactions management page component for the Budget App.
+ *
+ * This page provides a tabular view of all user transactions (income and expenses)
+ * with full CRUD capabilities. Transactions are the core financial records that
+ * track money flow and are linked to categories for spending analysis.
+ *
+ * Features:
+ * - Tabular display with date, description, category, and amount columns
+ * - Color-coded amounts (green for income, red for expenses)
+ * - Create new transactions via modal form
+ * - Inline edit and delete actions
+ * - Category badges for visual categorization
+ *
+ * @module pages/Transactions
+ */
+
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { Transaction } from '../types'
 import TransactionForm from '../components/TransactionForm'
 
+/**
+ * Transactions page component for managing financial records.
+ *
+ * This component displays all user transactions in a sortable table format
+ * and provides create, edit, and delete functionality. Transactions are
+ * fetched on mount and the list is refreshed after any modification.
+ *
+ * State Management:
+ * - transactions: Array of all user transactions from API
+ * - showForm: Controls the transaction form modal visibility
+ * - editingTransaction: Transaction being edited (null for create mode)
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Transactions page with table and form modal
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/transactions" element={<Transactions />} />
+ */
 export default function Transactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
+  /**
+   * Fetches all transactions for the current user from the API.
+   * Called on component mount and after successful create/edit operations.
+   */
   const fetchTransactions = async () => {
     try {
       const response = await api.get('/transactions')
@@ -20,35 +60,45 @@ export default function Transactions() {
     }
   }
 
+  // Initial data fetch on component mount
   useEffect(() => {
     fetchTransactions()
   }, [])
 
+  /** Opens the form in create mode (no transaction selected) */
   const handleCreate = () => {
     setEditingTransaction(null)
     setShowForm(true)
   }
 
+  /** Opens the form in edit mode with the selected transaction */
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction)
     setShowForm(true)
   }
 
+  /**
+   * Deletes a transaction after user confirmation.
+   * Uses optimistic UI update by filtering local state immediately.
+   */
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return
     try {
       await api.delete(`/transactions/${id}`)
+      // Optimistic update: remove from local state
       setTransactions(transactions.filter((t) => t.id !== id))
     } catch (error) {
       console.error('Failed to delete transaction:', error)
     }
   }
 
+  /** Closes the form modal and resets editing state */
   const handleFormClose = () => {
     setShowForm(false)
     setEditingTransaction(null)
   }
 
+  /** Handles successful form submission by closing form and refreshing data */
   const handleFormSuccess = () => {
     handleFormClose()
     fetchTransactions()

@@ -1,5 +1,25 @@
+/**
+ * @fileoverview Sidebar Navigation Component.
+ *
+ * This component renders the main navigation sidebar that appears on the left
+ * side of all authenticated pages. It displays the application branding and
+ * a list of navigation links to different sections of the app.
+ *
+ * The sidebar uses React Router's NavLink component to provide active state
+ * styling for the current route.
+ *
+ * @module components/Sidebar
+ */
+
 import { NavLink } from 'react-router-dom'
 
+/**
+ * Navigation items configuration.
+ * Each item defines a route path, display label, and SVG icon path data.
+ *
+ * @constant
+ * @type {Array<{path: string, label: string, icon: string}>}
+ */
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
   { path: '/budgets', label: 'Budgets', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
@@ -8,23 +28,49 @@ const navItems = [
   { path: '/bank-statements', label: 'Bank Statements', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
 ]
 
+/**
+ * Sidebar component that renders the main navigation for the application.
+ *
+ * The sidebar includes:
+ * - Application branding/logo at the top
+ * - Vertical navigation menu with icons and labels
+ * - Active state highlighting for the current route
+ *
+ * Each navigation item uses React Router's NavLink to automatically
+ * apply active styling when the user is on that route.
+ *
+ * @returns {JSX.Element} The sidebar component with navigation links
+ *
+ * @example
+ * // Used within the Layout component
+ * <div className="flex min-h-screen">
+ *   <Sidebar />
+ *   <main>{children}</main>
+ * </div>
+ */
 export default function Sidebar() {
   return (
     <aside className="w-64 bg-gray-900 min-h-screen">
+      {/* Application branding */}
       <div className="p-4">
         <h1 className="text-xl font-bold text-white">Budget App</h1>
       </div>
+
+      {/* Navigation menu */}
       <nav className="mt-4">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
+              // Dynamic class based on active state
+              // Active links get a left border and highlighted background
               `flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${
                 isActive ? 'bg-gray-800 text-white border-l-4 border-primary-500' : ''
               }`
             }
           >
+            {/* Navigation icon */}
             <svg
               className="w-5 h-5 mr-3"
               fill="none"
@@ -33,6 +79,7 @@ export default function Sidebar() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
             </svg>
+            {/* Navigation label */}
             {item.label}
           </NavLink>
         ))}

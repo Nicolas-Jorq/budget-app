@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Dashboard page component for the Budget App.
+ *
+ * This is the main landing page after user authentication. It provides a comprehensive
+ * overview of the user's financial status including:
+ * - Summary statistics cards (total budget, spent, income, expenses)
+ * - Visual charts for spending analysis and trends
+ * - Savings goals progress summary
+ * - AI-powered financial insights
+ * - Recent transaction activity
+ *
+ * The dashboard fetches data from multiple API endpoints in parallel on mount
+ * and displays various visualization components to help users understand their
+ * financial health at a glance.
+ *
+ * @module pages/Dashboard
+ */
+
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
@@ -9,6 +27,18 @@ import BudgetProgressChart from '../components/charts/BudgetProgressChart'
 import { AIInsights } from '../components/insights'
 import { useAuth } from '../context/AuthContext'
 
+/**
+ * Aggregated statistics for the user's financial dashboard.
+ * These values are computed on the server from the user's budgets and transactions.
+ *
+ * @interface DashboardStats
+ * @property {number} totalBudget - Sum of all budget allocations
+ * @property {number} totalSpent - Total amount spent across all categories
+ * @property {number} totalIncome - Total income recorded
+ * @property {number} totalExpenses - Total expenses recorded
+ * @property {number} budgetCount - Number of active budgets
+ * @property {number} transactionCount - Total number of transactions
+ */
 interface DashboardStats {
   totalBudget: number
   totalSpent: number
@@ -18,6 +48,21 @@ interface DashboardStats {
   transactionCount: number
 }
 
+/**
+ * Dashboard page component that displays the user's financial overview.
+ *
+ * This component serves as the main hub for financial insights, combining
+ * multiple data sources to present a holistic view of the user's finances.
+ * It fetches dashboard statistics, chart data, and goals summary in parallel
+ * on component mount for optimal performance.
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Dashboard page with stats, charts, and insights
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/" element={<Dashboard />} />
+ */
 export default function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -25,9 +70,12 @@ export default function Dashboard() {
   const [goalsSummary, setGoalsSummary] = useState<GoalsSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Fetch all dashboard data on component mount
+  // Uses Promise.all for parallel requests to optimize load time
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Parallel API calls for stats, chart data, and goals summary
         const [statsRes, chartsRes, goalsRes] = await Promise.all([
           api.get('/dashboard/stats'),
           api.get('/dashboard/charts'),
@@ -53,6 +101,8 @@ export default function Dashboard() {
     )
   }
 
+  // Configuration for the four main stats cards displayed at the top
+  // Each card has a label, value from stats, color theme, and SVG icon path
   const statCards = [
     { label: 'Total Budget', value: stats?.totalBudget ?? 0, color: 'bg-blue-500', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z' },
     { label: 'Total Spent', value: stats?.totalSpent ?? 0, color: 'bg-red-500', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
@@ -139,10 +189,13 @@ export default function Dashboard() {
 
             {/* Top 3 Goals */}
             <div className="space-y-3">
-              {goalsSummary.goals.slice(0, 3).map((goal) => {
+              {/* Display top 3 goals with progress bars */}
+            {goalsSummary.goals.slice(0, 3).map((goal) => {
+                // Calculate percentage progress, avoiding division by zero
                 const percentage = Number(goal.targetAmount) > 0
                   ? (Number(goal.currentAmount) / Number(goal.targetAmount)) * 100
                   : 0
+                // Get goal type styling info, fallback to custom color if set
                 const typeInfo = GOAL_TYPE_INFO[goal.type]
                 const displayColor = goal.color || typeInfo.color
 

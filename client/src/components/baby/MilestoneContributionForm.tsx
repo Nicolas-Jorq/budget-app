@@ -1,7 +1,26 @@
+/**
+ * @fileoverview Milestone Contribution Form Component
+ *
+ * This component provides a modal form for adding monetary contributions to
+ * a baby milestone. It features quick amount buttons, a custom amount input,
+ * and displays the current progress toward the milestone goal.
+ *
+ * @module components/baby/MilestoneContributionForm
+ */
+
 import { useState } from 'react'
 import api from '../../services/api'
 import { BabyMilestone, MILESTONE_CATEGORY_INFO } from '../../types'
 
+/**
+ * Props for the MilestoneContributionForm component.
+ *
+ * @interface MilestoneContributionFormProps
+ * @property {string} goalId - The parent goal ID
+ * @property {BabyMilestone} milestone - The milestone receiving the contribution
+ * @property {() => void} onClose - Callback to close the modal
+ * @property {() => void} onSuccess - Callback on successful contribution
+ */
 interface MilestoneContributionFormProps {
   goalId: string
   milestone: BabyMilestone
@@ -9,20 +28,57 @@ interface MilestoneContributionFormProps {
   onSuccess: () => void
 }
 
+/**
+ * Renders a modal form for adding contributions to a baby milestone.
+ *
+ * Features:
+ * - Category icon and remaining amount display
+ * - Visual progress bar showing current savings
+ * - Quick amount buttons for common contribution amounts
+ * - "Complete" button to contribute the exact remaining amount
+ * - Custom amount input for flexible contributions
+ * - Optional note field for contribution context
+ * - Form validation and error handling
+ *
+ * @param {MilestoneContributionFormProps} props - Component props
+ * @param {string} props.goalId - Parent goal identifier
+ * @param {BabyMilestone} props.milestone - Target milestone for contribution
+ * @param {() => void} props.onClose - Close modal handler
+ * @param {() => void} props.onSuccess - Success handler
+ * @returns {JSX.Element} A modal form for adding contributions
+ *
+ * @example
+ * <MilestoneContributionForm
+ *   goalId="goal-123"
+ *   milestone={selectedMilestone}
+ *   onClose={() => setShowContributeForm(false)}
+ *   onSuccess={() => { refreshData(); setShowContributeForm(false); }}
+ * />
+ */
 export default function MilestoneContributionForm({
   goalId,
   milestone,
   onClose,
   onSuccess,
 }: MilestoneContributionFormProps) {
+  // Form state
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Get category styling information
   const categoryInfo = MILESTONE_CATEGORY_INFO[milestone.category]
+
+  // Calculate remaining amount needed to complete the milestone
   const remaining = Math.max(milestone.targetAmount - milestone.currentAmount, 0)
 
+  /**
+   * Handles form submission to add a contribution.
+   * Makes API call to record the contribution amount and optional note.
+   *
+   * @param {React.FormEvent} e - Form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -41,11 +97,16 @@ export default function MilestoneContributionForm({
     }
   }
 
+  /**
+   * Predefined quick amount options for one-click selection.
+   * These common amounts make it easy to add typical contributions.
+   */
   const quickAmounts = [50, 100, 250, 500]
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        {/* Header with category icon and milestone info */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-3xl">{categoryInfo.icon}</span>
           <div>
@@ -58,7 +119,7 @@ export default function MilestoneContributionForm({
           </div>
         </div>
 
-        {/* Progress indicator */}
+        {/* Progress indicator showing current savings vs target */}
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-1">
             <span className="text-gray-600 dark:text-gray-400">
@@ -79,6 +140,7 @@ export default function MilestoneContributionForm({
           </div>
         </div>
 
+        {/* Error display */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-3 rounded-md mb-4">
             {error}
@@ -86,12 +148,13 @@ export default function MilestoneContributionForm({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Quick amount buttons */}
+          {/* Quick amount selection buttons */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Quick Add
             </label>
             <div className="flex gap-2 flex-wrap">
+              {/* Preset amount buttons */}
               {quickAmounts.map((quickAmount) => (
                 <button
                   key={quickAmount}
@@ -106,6 +169,7 @@ export default function MilestoneContributionForm({
                   ${quickAmount}
                 </button>
               ))}
+              {/* "Complete" button to fill remaining amount */}
               {remaining > 0 && (
                 <button
                   type="button"
@@ -122,7 +186,7 @@ export default function MilestoneContributionForm({
             </div>
           </div>
 
-          {/* Custom amount */}
+          {/* Custom amount input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Amount
@@ -142,7 +206,7 @@ export default function MilestoneContributionForm({
             </div>
           </div>
 
-          {/* Note */}
+          {/* Optional note input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Note (optional)
@@ -156,7 +220,7 @@ export default function MilestoneContributionForm({
             />
           </div>
 
-          {/* Actions */}
+          {/* Form action buttons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"

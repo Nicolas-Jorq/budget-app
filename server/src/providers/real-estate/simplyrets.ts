@@ -11,6 +11,7 @@ import {
   RealEstateProvider,
   PropertySearchParams,
   PropertyListing,
+  PropertyType,
   HomeValuation,
   MortgageParams,
   MortgageCalculation,
@@ -233,7 +234,7 @@ export class SimplyRetsProvider implements RealEstateProvider {
     const totalBaths = p.property.bathsFull + p.property.bathsHalf * 0.5
 
     // Map SimplyRETS property type to our types
-    let propertyType = 'single_family'
+    let propertyType: PropertyType = 'single_family'
     if (p.property.type === 'Condominium' || p.property.subType?.includes('Condo')) {
       propertyType = 'condo'
     } else if (p.property.subType?.includes('Townhouse')) {

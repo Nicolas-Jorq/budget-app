@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Savings Goals management page component for the Budget App.
+ *
+ * This page enables users to create and track savings goals for various purposes
+ * such as emergency funds, vacations, major purchases, or custom objectives.
+ * Goals can receive contributions over time, and progress is visually tracked.
+ *
+ * Features:
+ * - Summary statistics cards (total saved, target, overall progress)
+ * - Separate sections for active and completed goals
+ * - Create, edit, and delete goals
+ * - Add contributions to goals
+ * - Visual progress indicators with percentage complete
+ * - Empty state with call-to-action for new users
+ *
+ * @module pages/Goals
+ */
+
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import { SavingsGoal } from '../types'
@@ -5,6 +23,33 @@ import GoalCard from '../components/GoalCard'
 import GoalForm from '../components/GoalForm'
 import ContributionForm from '../components/ContributionForm'
 
+/**
+ * Savings Goals page component for managing financial savings targets.
+ *
+ * This component provides a complete interface for savings goal management
+ * including creation, editing, deletion, and contribution tracking. Goals
+ * are automatically categorized as active or completed based on their status.
+ *
+ * State Management:
+ * - goals: Array of all user savings goals
+ * - showForm: Controls goal creation/edit form visibility
+ * - showContributionForm: Controls contribution form visibility
+ * - editingGoal: Goal being edited (null for create mode)
+ * - contributingGoal: Goal receiving a contribution
+ *
+ * Computed Values:
+ * - activeGoals: Goals not yet completed
+ * - completedGoals: Goals that have reached their target
+ * - totalTarget/totalSaved: Aggregated amounts across all goals
+ * - overallProgress: Percentage of total target achieved
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Goals page with summary, cards, and forms
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/goals" element={<Goals />} />
+ */
 export default function Goals() {
   const [goals, setGoals] = useState<SavingsGoal[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -13,6 +58,10 @@ export default function Goals() {
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null)
   const [contributingGoal, setContributingGoal] = useState<SavingsGoal | null>(null)
 
+  /**
+   * Fetches all savings goals for the current user from the API.
+   * Called on mount and after successful goal/contribution operations.
+   */
   const fetchGoals = async () => {
     try {
       const response = await api.get('/goals')
@@ -24,6 +73,7 @@ export default function Goals() {
     }
   }
 
+  // Initial data fetch on component mount
   useEffect(() => {
     fetchGoals()
   }, [])
@@ -73,11 +123,13 @@ export default function Goals() {
     fetchGoals()
   }
 
-  // Calculate summary stats
+  // Calculate summary statistics for all goals
+  // Used to display aggregate progress in the summary cards section
   const activeGoals = goals.filter((g) => !g.isCompleted)
   const completedGoals = goals.filter((g) => g.isCompleted)
   const totalTarget = goals.reduce((sum, g) => sum + Number(g.targetAmount), 0)
   const totalSaved = goals.reduce((sum, g) => sum + Number(g.currentAmount), 0)
+  // Avoid division by zero when calculating overall progress percentage
   const overallProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0
 
   if (isLoading) {

@@ -1,3 +1,29 @@
+/**
+ * @fileoverview Bank Statements management page for document upload and processing.
+ *
+ * This page enables users to upload bank statement PDFs and have them processed
+ * by AI (LLM) to extract transactions automatically. It provides a complete
+ * workflow for managing bank accounts, uploading documents, and tracking
+ * processing status.
+ *
+ * Features:
+ * - Bank account management (create accounts for different banks/cards)
+ * - PDF statement upload with optional account association
+ * - AI provider selection for document processing
+ * - Document list with status indicators
+ * - Processing triggers for pending/failed documents
+ * - Navigation to document review page
+ *
+ * Document Processing Flow:
+ * 1. User uploads PDF statement
+ * 2. Document is stored with PENDING status
+ * 3. AI provider extracts transactions from PDF
+ * 4. Status updates to PROCESSED with transaction count
+ * 5. User reviews and imports transactions
+ *
+ * @module pages/BankStatements
+ */
+
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
@@ -10,6 +36,28 @@ import {
   AccountType,
 } from '../types'
 
+/**
+ * Bank Statements page component for managing bank statement uploads.
+ *
+ * This component provides the primary interface for uploading bank statements
+ * and managing the document processing workflow. It integrates with multiple
+ * AI providers for intelligent transaction extraction.
+ *
+ * State Management:
+ * - documents: Array of uploaded bank documents
+ * - bankAccounts: User's configured bank accounts
+ * - providers: Available AI/LLM providers for processing
+ * - showUpload/showAddAccount: Modal visibility states
+ * - uploadState: Current state of upload process ('idle', 'uploading', 'processing')
+ * - Form states for file selection and account creation
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Bank Statements management page
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/bank-statements" element={<BankStatements />} />
+ */
 export default function BankStatements() {
   const [documents, setDocuments] = useState<BankDocument[]>([])
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
@@ -31,11 +79,18 @@ export default function BankStatements() {
     lastFour: '',
   })
 
+  /**
+   * Fetches all data required for the bank statements page.
+   * Uses useCallback to prevent unnecessary re-renders.
+   * Makes parallel API requests with graceful error handling.
+   */
   const fetchData = useCallback(async () => {
     try {
+      // Parallel fetch for documents, accounts, and AI providers
       const [docsRes, accountsRes, providersRes] = await Promise.all([
         api.get('/documents'),
         api.get('/bank-accounts'),
+        // Providers endpoint may not exist in all deployments
         api.get('/documents/providers').catch(() => ({ data: { providers: [] } })),
       ])
       setDocuments(docsRes.data)
@@ -48,10 +103,15 @@ export default function BankStatements() {
     }
   }, [])
 
+  // Initial data fetch on component mount
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
+  /**
+   * Handles file input change event.
+   * Validates that selected file is a PDF before accepting.
+   */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type === 'application/pdf') {
@@ -61,6 +121,10 @@ export default function BankStatements() {
     }
   }
 
+  /**
+   * Handles the complete upload and processing workflow.
+   * Two-step process: upload file, then trigger AI processing.
+   */
   const handleUpload = async () => {
     if (!selectedFile) return
 
@@ -68,6 +132,7 @@ export default function BankStatements() {
     setUploadProgress('Uploading document...')
 
     try {
+      // Step 1: Upload the PDF file
       const formData = new FormData()
       formData.append('file', selectedFile)
       if (selectedAccount) {
@@ -80,6 +145,7 @@ export default function BankStatements() {
 
       const documentId = uploadRes.data.document_id
 
+      // Step 2: Trigger AI processing
       setUploadState('processing')
       setUploadProgress('Processing with AI... This may take a minute.')
 
@@ -91,10 +157,10 @@ export default function BankStatements() {
         `Extracted ${processRes.data.transaction_count} transactions using ${processRes.data.provider}`
       )
 
-      // Refresh documents list
+      // Refresh documents list to show new document
       await fetchData()
 
-      // Reset form
+      // Reset form after brief delay to show success message
       setTimeout(() => {
         setShowUpload(false)
         setSelectedFile(null)
@@ -110,12 +176,17 @@ export default function BankStatements() {
     }
   }
 
+  /**
+   * Handles form submission for adding a new bank account.
+   * Resets form and refreshes account list on success.
+   */
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       await api.post('/bank-accounts', newAccount)
       await fetchData()
       setShowAddAccount(false)
+      // Reset form to default values
       setNewAccount({
         name: '',
         bankName: '',
@@ -127,18 +198,27 @@ export default function BankStatements() {
     }
   }
 
+  /**
+   * Formats file size in bytes to human-readable string.
+   * @param {number} bytes - File size in bytes
+   * @returns {string} Formatted size (e.g., "1.5 MB")
+   */
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
+  /**
+   * Triggers AI processing for a pending or failed document.
+   * Uses optimistic UI update to show processing state immediately.
+   */
   const handleProcessDocument = async (docId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
     try {
-      // Update UI to show processing
+      // Optimistic update: show processing status immediately
       setDocuments(docs =>
         docs.map(d => d.id === docId ? { ...d, status: 'PROCESSING' as const } : d)
       )
@@ -147,7 +227,7 @@ export default function BankStatements() {
         llmProvider: selectedProvider || undefined,
       })
 
-      // Refresh documents list
+      // Refresh to get actual status and transaction count
       await fetchData()
     } catch (error: any) {
       console.error('Process failed:', error)
@@ -156,6 +236,10 @@ export default function BankStatements() {
     }
   }
 
+  /**
+   * Deletes a document after user confirmation.
+   * Refreshes the document list on success.
+   */
   const handleDeleteDocument = async (docId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()

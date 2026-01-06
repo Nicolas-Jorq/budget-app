@@ -1,7 +1,33 @@
+/**
+ * @fileoverview AI Insights Component
+ *
+ * This component displays AI-powered financial insights and recommendations
+ * based on user spending patterns and goals. It fetches analysis data from
+ * the AI service and presents personalized recommendations, goal predictions,
+ * and spending summaries.
+ *
+ * @module components/insights/AIInsights
+ */
+
 import { useState, useEffect } from 'react'
 
+/**
+ * Base URL for the AI analytics service.
+ * Defaults to localhost:8000 if not configured in environment variables.
+ */
 const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000'
 
+/**
+ * Represents a single AI-generated financial recommendation.
+ *
+ * @interface Recommendation
+ * @property {string} category - Category of the recommendation (spending, goals, general)
+ * @property {'high' | 'medium' | 'low'} priority - Urgency level of the recommendation
+ * @property {string} title - Brief title of the recommendation
+ * @property {string} description - Detailed description of the recommendation
+ * @property {number | null} potentialImpact - Estimated dollar savings if implemented
+ * @property {string[]} actionItems - List of specific actions to take
+ */
 interface Recommendation {
   category: string
   priority: 'high' | 'medium' | 'low'
@@ -11,6 +37,15 @@ interface Recommendation {
   actionItems: string[]
 }
 
+/**
+ * Summary statistics for user spending patterns.
+ *
+ * @interface SpendingSummary
+ * @property {number} totalSpending - Total amount spent in the analysis period
+ * @property {number} avgMonthlySpending - Average monthly spending
+ * @property {string | null} topCategory - Highest spending category
+ * @property {number} transactionCount - Number of transactions analyzed
+ */
 interface SpendingSummary {
   totalSpending: number
   avgMonthlySpending: number
@@ -18,6 +53,19 @@ interface SpendingSummary {
   transactionCount: number
 }
 
+/**
+ * AI prediction for a single financial goal's progress.
+ *
+ * @interface GoalPrediction
+ * @property {string} goalId - Unique identifier of the goal
+ * @property {string} goalName - Display name of the goal
+ * @property {number} targetAmount - Target amount for the goal
+ * @property {number} currentAmount - Current saved amount
+ * @property {number} progressPercent - Percentage progress (0-100)
+ * @property {boolean | null} onTrack - Whether goal is on track to be met
+ * @property {string | null} predictedCompletionDate - Estimated completion date
+ * @property {string} recommendation - AI recommendation for the goal
+ */
 interface GoalPrediction {
   goalId: string
   goalName: string
@@ -29,6 +77,15 @@ interface GoalPrediction {
   recommendation: string
 }
 
+/**
+ * Complete analysis data structure returned from the AI service.
+ *
+ * @interface AnalysisData
+ * @property {object | null} spendingPatterns - Spending analysis with summary and breakdown
+ * @property {object | null} goalPredictions - Goal predictions with summary and individual predictions
+ * @property {object | null} anomalies - Detected spending anomalies summary
+ * @property {object} recommendations - AI recommendations with summary and list
+ */
 interface AnalysisData {
   spendingPatterns: {
     summary: SpendingSummary
@@ -61,20 +118,52 @@ interface AnalysisData {
   }
 }
 
+/**
+ * Props for the AIInsights component.
+ *
+ * @interface AIInsightsProps
+ * @property {string} userId - User ID for fetching personalized insights
+ */
 interface AIInsightsProps {
   userId: string
 }
 
+/**
+ * Renders an AI-powered financial insights dashboard.
+ *
+ * Features:
+ * - Gradient header with quick stats (recommendations, goals on track, alerts)
+ * - Top recommendations with priority badges and expandable action items
+ * - Goal predictions showing progress and on-track status
+ * - Spending summary with average monthly spending and category breakdown
+ * - Category breakdown with percentage bars
+ * - Loading skeleton during data fetch
+ * - Error state with retry option
+ * - Dark mode support throughout
+ *
+ * @param {AIInsightsProps} props - Component props
+ * @param {string} props.userId - User ID for personalized insights
+ * @returns {JSX.Element} AI insights dashboard with recommendations and analysis
+ *
+ * @example
+ * <AIInsights userId="user-123" />
+ */
 export function AIInsights({ userId }: AIInsightsProps) {
+  // Component state
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
+  // Fetch analysis data when component mounts or userId changes
   useEffect(() => {
     fetchAnalysis()
   }, [userId])
 
+  /**
+   * Fetches full analysis data from the AI service.
+   * Handles loading state and error display.
+   */
   const fetchAnalysis = async () => {
     try {
       setLoading(true)
@@ -95,6 +184,12 @@ export function AIInsights({ userId }: AIInsightsProps) {
     }
   }
 
+  /**
+   * Returns appropriate Tailwind CSS classes for priority badge styling.
+   *
+   * @param {string} priority - Priority level (high, medium, low)
+   * @returns {string} Tailwind CSS classes for the priority badge
+   */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -108,6 +203,12 @@ export function AIInsights({ userId }: AIInsightsProps) {
     }
   }
 
+  /**
+   * Returns an emoji icon for the recommendation category.
+   *
+   * @param {string} category - Category type (spending, goals, general)
+   * @returns {string} Emoji representing the category
+   */
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'spending':
@@ -121,6 +222,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
     }
   }
 
+  // Loading state - show skeleton UI
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -136,6 +238,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
     )
   }
 
+  // Error state - show warning with retry button
   if (error) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -158,14 +261,16 @@ export function AIInsights({ userId }: AIInsightsProps) {
     )
   }
 
+  // No data state
   if (!analysis) return null
 
+  // Extract recommendations for display (limit to top 3)
   const recommendations = analysis.recommendations?.recommendations || []
   const topRecommendations = recommendations.slice(0, 3)
 
   return (
     <div className="space-y-6">
-      {/* AI Insights Header */}
+      {/* AI Insights Header with gradient background */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🤖</span>
@@ -175,7 +280,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
           Personalized recommendations based on your spending patterns and goals.
         </p>
 
-        {/* Quick Stats */}
+        {/* Quick stats grid */}
         <div className="grid grid-cols-3 gap-4 mt-4">
           <div className="bg-white/10 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold">{recommendations.length}</div>
@@ -196,7 +301,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
         </div>
       </div>
 
-      {/* Top Recommendations */}
+      {/* Top Recommendations Section */}
       {topRecommendations.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -210,6 +315,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">{getCategoryIcon(rec.category)}</span>
                   <div className="flex-1">
+                    {/* Recommendation header with title and priority badge */}
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium text-gray-900 dark:text-white">
                         {rec.title}
@@ -224,7 +330,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                       {rec.description}
                     </p>
 
-                    {/* Expandable Action Items */}
+                    {/* Expandable action items section */}
                     {rec.actionItems.length > 0 && (
                       <div>
                         <button
@@ -251,6 +357,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                       </div>
                     )}
 
+                    {/* Potential savings display */}
                     {rec.potentialImpact && (
                       <div className="mt-2 text-sm text-green-600 dark:text-green-400">
                         Potential savings: ${rec.potentialImpact.toLocaleString()}
@@ -264,7 +371,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
         </div>
       )}
 
-      {/* Goal Predictions */}
+      {/* Goal Predictions Section */}
       {analysis.goalPredictions?.predictions &&
         analysis.goalPredictions.predictions.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -274,6 +381,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
               </h3>
             </div>
             <div className="p-4 space-y-4">
+              {/* Show top 3 goal predictions */}
               {analysis.goalPredictions.predictions.slice(0, 3).map((goal) => (
                 <div
                   key={goal.goalId}
@@ -291,6 +399,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                     <div className="text-lg font-semibold text-gray-900 dark:text-white">
                       {goal.progressPercent.toFixed(0)}%
                     </div>
+                    {/* On-track indicator */}
                     {goal.onTrack !== null && (
                       <div
                         className={`text-xs ${goal.onTrack ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
@@ -305,7 +414,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
           </div>
         )}
 
-      {/* Spending Summary */}
+      {/* Spending Summary Section */}
       {analysis.spendingPatterns?.summary &&
         analysis.spendingPatterns.summary.transactionCount > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
@@ -313,6 +422,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
               Spending Summary
             </h3>
             <div className="grid grid-cols-2 gap-4">
+              {/* Average monthly spending */}
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   ${analysis.spendingPatterns.summary.avgMonthlySpending.toLocaleString()}
@@ -321,6 +431,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                   Avg Monthly Spending
                 </div>
               </div>
+              {/* Top spending category */}
               <div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {analysis.spendingPatterns.summary.topCategory || 'N/A'}
@@ -329,13 +440,14 @@ export function AIInsights({ userId }: AIInsightsProps) {
               </div>
             </div>
 
-            {/* Category Breakdown */}
+            {/* Category breakdown with percentage bars */}
             {analysis.spendingPatterns.categoryBreakdown.length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Category Breakdown
                 </h4>
                 <div className="space-y-2">
+                  {/* Show top 5 categories */}
                   {analysis.spendingPatterns.categoryBreakdown.slice(0, 5).map((cat) => (
                     <div key={cat.category} className="flex items-center gap-2">
                       <div className="flex-1">
@@ -347,6 +459,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
                             {cat.percentage}%
                           </span>
                         </div>
+                        {/* Percentage bar visualization */}
                         <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full"

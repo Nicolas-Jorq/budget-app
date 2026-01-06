@@ -1,5 +1,28 @@
+/**
+ * @fileoverview Document Review page for reviewing AI-extracted transactions.
+ *
+ * This page provides a detailed review interface for transactions extracted
+ * from uploaded bank statements. Users can review, edit, approve, reject,
+ * and import transactions into their main transaction list.
+ *
+ * Review Workflow:
+ * 1. View all extracted transactions in a table
+ * 2. Check for duplicates against existing transactions
+ * 3. Edit transaction details (description, category, amount)
+ * 4. Approve or reject individual or bulk transactions
+ * 5. Import approved transactions into the main system
+ *
+ * Transaction Statuses:
+ * - PENDING: Awaiting user review
+ * - APPROVED: Ready for import
+ * - REJECTED: Will not be imported
+ * - DUPLICATE: Detected as duplicate of existing transaction
+ *
+ * @module pages/DocumentReview
+ */
+
 import { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
 import {
   DocumentWithTransactions,
@@ -8,6 +31,10 @@ import {
   TRANSACTION_STATUS_INFO,
 } from '../types'
 
+/**
+ * Available transaction categories for classification.
+ * These match the categories used throughout the application.
+ */
 const CATEGORIES = [
   'Groceries',
   'Dining',
@@ -29,9 +56,32 @@ const CATEGORIES = [
   'Other',
 ]
 
+/**
+ * Document Review page component for reviewing extracted transactions.
+ *
+ * This component provides a comprehensive interface for reviewing transactions
+ * that were extracted from bank statement PDFs by AI. It supports editing,
+ * bulk actions, duplicate detection, and final import.
+ *
+ * URL Parameters:
+ * - id: The document ID from the route (e.g., /bank-statements/:id)
+ *
+ * State Management:
+ * - data: Document details with array of extracted transactions
+ * - selectedIds: Set of transaction IDs selected for bulk actions
+ * - editingId: ID of transaction currently being edited
+ * - editForm: Form state for editing transaction details
+ * - isProcessing: Loading state for async operations
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Document Review page
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/bank-statements/:id" element={<DocumentReview />} />
+ */
 export default function DocumentReview() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [data, setData] = useState<DocumentWithTransactions | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -39,6 +89,10 @@ export default function DocumentReview() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<PendingTransaction>>({})
 
+  /**
+   * Fetches document data with extracted transactions.
+   * Uses useCallback to prevent unnecessary re-renders.
+   */
   const fetchData = useCallback(async () => {
     if (!id) return
     try {
@@ -51,10 +105,15 @@ export default function DocumentReview() {
     }
   }, [id])
 
+  // Fetch data on mount and when document ID changes
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
+  /**
+   * Toggles selection of all pending transactions.
+   * If all are selected, deselects all. Otherwise, selects all pending.
+   */
   const handleSelectAll = () => {
     if (!data) return
     const pendingTxns = data.transactions.filter((t) => t.status === 'PENDING')
@@ -65,6 +124,10 @@ export default function DocumentReview() {
     }
   }
 
+  /**
+   * Toggles selection state of a single transaction.
+   * @param {string} txnId - Transaction ID to toggle
+   */
   const handleToggleSelect = (txnId: string) => {
     const newSelected = new Set(selectedIds)
     if (newSelected.has(txnId)) {
@@ -75,6 +138,10 @@ export default function DocumentReview() {
     setSelectedIds(newSelected)
   }
 
+  /**
+   * Performs bulk approve or reject action on selected transactions.
+   * @param {'approve' | 'reject'} action - Action to perform
+   */
   const handleBulkAction = async (action: 'approve' | 'reject') => {
     if (selectedIds.size === 0) return
     setIsProcessing(true)
@@ -83,7 +150,7 @@ export default function DocumentReview() {
         transactionIds: Array.from(selectedIds),
         action,
       })
-      setSelectedIds(new Set())
+      setSelectedIds(new Set())  // Clear selection after action
       await fetchData()
     } catch (error) {
       console.error('Bulk action failed:', error)
@@ -92,6 +159,7 @@ export default function DocumentReview() {
     }
   }
 
+  /** Approves a single transaction for import */
   const handleApprove = async (txnId: string) => {
     try {
       await api.post(`/documents/${id}/transactions/${txnId}/approve`)
@@ -101,6 +169,7 @@ export default function DocumentReview() {
     }
   }
 
+  /** Rejects a single transaction (will not be imported) */
   const handleReject = async (txnId: string) => {
     try {
       await api.post(`/documents/${id}/transactions/${txnId}/reject`)
@@ -110,6 +179,10 @@ export default function DocumentReview() {
     }
   }
 
+  /**
+   * Checks for duplicate transactions against existing user transactions.
+   * Marks potential duplicates with DUPLICATE status.
+   */
   const handleCheckDuplicates = async () => {
     setIsProcessing(true)
     try {
@@ -127,6 +200,10 @@ export default function DocumentReview() {
     }
   }
 
+  /**
+   * Imports all approved transactions into the main transaction system.
+   * Creates permanent transaction records from the extracted data.
+   */
   const handleImport = async () => {
     setIsProcessing(true)
     try {
@@ -140,6 +217,10 @@ export default function DocumentReview() {
     }
   }
 
+  /**
+   * Initiates inline editing for a transaction.
+   * Populates edit form with current transaction values.
+   */
   const startEdit = (txn: PendingTransaction) => {
     setEditingId(txn.id)
     setEditForm({
@@ -150,6 +231,10 @@ export default function DocumentReview() {
     })
   }
 
+  /**
+   * Saves edited transaction data to the server.
+   * Clears edit state and refreshes data on success.
+   */
   const saveEdit = async () => {
     if (!editingId) return
     try {
@@ -184,7 +269,10 @@ export default function DocumentReview() {
     )
   }
 
+  // Destructure document and transactions from fetched data
   const { document: doc, transactions } = data
+
+  // Calculate counts by status for the summary statistics cards
   const pendingCount = transactions.filter((t) => t.status === 'PENDING').length
   const approvedCount = transactions.filter((t) => t.status === 'APPROVED').length
   const rejectedCount = transactions.filter((t) => t.status === 'REJECTED').length

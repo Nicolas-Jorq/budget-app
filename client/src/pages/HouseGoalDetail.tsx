@@ -1,3 +1,24 @@
+/**
+ * @fileoverview House Goal detail page component for home buying savings.
+ *
+ * This specialized goal detail page is designed for users saving for a home purchase.
+ * It extends the basic goal functionality with house-specific features including:
+ * - Real estate property search integration
+ * - Saved properties management with favorites
+ * - Mortgage calculator for payment estimates
+ * - Home valuation tool
+ * - Down payment progress tracking
+ *
+ * The page is organized into tabs:
+ * - Overview: Summary stats, target property details, mortgage estimate
+ * - Search: Property search with location/bedroom/bathroom filters
+ * - Saved: List of saved properties with favorite marking
+ * - Calculator: Detailed mortgage payment calculator
+ * - Valuation: Home value estimation tool
+ *
+ * @module pages/HouseGoalDetail
+ */
+
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../services/api'
@@ -7,8 +28,41 @@ import PropertyCard from '../components/house/PropertyCard'
 import MortgageCalculator from '../components/house/MortgageCalculator'
 import HomeValuation from '../components/house/HomeValuation'
 
+/**
+ * Available tab types for navigating the house goal detail page.
+ * @typedef {'overview' | 'search' | 'saved' | 'calculator' | 'valuation'} Tab
+ */
 type Tab = 'overview' | 'search' | 'saved' | 'calculator' | 'valuation'
 
+/**
+ * House Goal detail page component for managing home buying savings.
+ *
+ * This component provides a comprehensive interface for tracking savings
+ * toward a home purchase with features for property search, mortgage
+ * calculation, and progress visualization.
+ *
+ * URL Parameters:
+ * - id: The goal ID from the route (e.g., /goals/house/:id)
+ *
+ * State Management:
+ * - goal: The parent savings goal object
+ * - summary: Computed summary including mortgage estimates
+ * - savedProperties: Array of properties saved by user
+ * - providerStatus: Status of real estate data provider
+ * - activeTab: Currently selected tab view
+ *
+ * Data Flow:
+ * 1. Goal data fetched on mount with parallel requests
+ * 2. Non-house goals redirected to /goals
+ * 3. Property actions (save, favorite, remove) update local state
+ *
+ * @component
+ * @returns {JSX.Element} The rendered House Goal detail page
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/goals/house/:id" element={<HouseGoalDetail />} />
+ */
 export default function HouseGoalDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -21,11 +75,17 @@ export default function HouseGoalDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
+  /**
+   * Fetches all data required for the house goal detail page.
+   * Makes parallel API requests with graceful error handling for optional endpoints.
+   */
   const fetchData = async () => {
     if (!id) return
 
     try {
       setIsLoading(true)
+      // Parallel fetch with catch handlers for optional endpoints
+      // Summary, properties, and provider status may not exist for all goals
       const [goalRes, summaryRes, propertiesRes, statusRes] = await Promise.all([
         api.get(`/goals/${id}`),
         api.get(`/goals/${id}/house/summary`).catch(() => ({ data: null })),
@@ -33,6 +93,7 @@ export default function HouseGoalDetail() {
         api.get('/house/providers/status').catch(() => ({ data: null })),
       ])
 
+      // Redirect non-house goals back to goals list
       if (goalRes.data.type !== 'HOUSE') {
         navigate('/goals')
         return
@@ -50,15 +111,21 @@ export default function HouseGoalDetail() {
     }
   }
 
+  // Fetch data on mount and when goal ID changes
   useEffect(() => {
     fetchData()
   }, [id])
 
+  /**
+   * Toggles the favorite status of a saved property.
+   * Uses optimistic UI update for immediate feedback.
+   */
   const handleToggleFavorite = async (propertyId: string, isFavorite: boolean) => {
     if (!id) return
 
     try {
       await api.put(`/goals/${id}/properties/${propertyId}`, { isFavorite: !isFavorite })
+      // Optimistic update: toggle favorite in local state
       setSavedProperties((prev) =>
         prev.map((p) => (p.id === propertyId ? { ...p, isFavorite: !isFavorite } : p))
       )
@@ -67,11 +134,16 @@ export default function HouseGoalDetail() {
     }
   }
 
+  /**
+   * Removes a property from the saved list.
+   * Uses optimistic UI update by filtering local state immediately.
+   */
   const handleRemoveProperty = async (propertyId: string) => {
     if (!id) return
 
     try {
       await api.delete(`/goals/${id}/properties/${propertyId}`)
+      // Optimistic update: remove from local state
       setSavedProperties((prev) => prev.filter((p) => p.id !== propertyId))
     } catch (err) {
       console.error('Error removing property:', err)
@@ -97,11 +169,15 @@ export default function HouseGoalDetail() {
     )
   }
 
+  // Extract house-specific metadata from the goal
   const houseMetadata = goal.metadata as HouseGoalMetadata | null
+
+  // Convert amounts to numbers and calculate progress percentage
   const currentAmount = Number(goal.currentAmount)
   const targetAmount = Number(goal.targetAmount)
   const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0
 
+  // Tab configuration with icons for navigation
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'search', label: 'Search', icon: '🔍' },

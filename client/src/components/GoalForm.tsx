@@ -1,13 +1,33 @@
+/**
+ * @fileoverview GoalForm component for creating and editing savings goals.
+ * This component provides a comprehensive modal form for managing savings goals
+ * with support for different goal types including Baby, House, and general goals.
+ * It handles specialized metadata fields for different goal types and manages
+ * API communication for goal creation, updates, and related configurations.
+ */
+
 import { useState } from 'react'
 import api from '../services/api'
 import { SavingsGoal, GoalType, GOAL_TYPE_INFO, BabyGoalMetadata, HouseGoalMetadata, PropertyType, PROPERTY_TYPE_INFO } from '../types'
 
+/**
+ * Props interface for the GoalForm component.
+ * @interface GoalFormProps
+ */
 interface GoalFormProps {
+  /** Existing goal to edit, or null when creating a new goal */
   goal: SavingsGoal | null
+  /** Callback function to close the modal */
   onClose: () => void
+  /** Callback function triggered after successful save operation */
   onSuccess: () => void
 }
 
+/**
+ * Available goal types for savings goals.
+ * Each type has associated metadata and display configuration.
+ * @constant {GoalType[]}
+ */
 const goalTypes: GoalType[] = [
   'EMERGENCY_FUND',
   'BABY',
@@ -19,14 +39,52 @@ const goalTypes: GoalType[] = [
   'CUSTOM',
 ]
 
+/**
+ * Available property types for house goals.
+ * @constant {PropertyType[]}
+ */
 const propertyTypes: PropertyType[] = ['single_family', 'condo', 'townhouse', 'multi_family', 'apartment', 'land', 'other']
 
+/**
+ * A comprehensive modal form component for creating and editing savings goals.
+ *
+ * Features:
+ * - Create and edit goals with name, type, target amount, deadline, and priority
+ * - Visual goal type selector with icons
+ * - Specialized fields for Baby goals (baby name, pregnancy status, due date)
+ * - Specialized fields for House goals (price, location, bedrooms, bathrooms, down payment %)
+ * - Optional creation of default milestones for baby goals
+ * - Form validation with loading state and error handling
+ * - Handles creation of related configurations (house goal config, baby milestones)
+ *
+ * @param {GoalFormProps} props - The component props
+ * @param {SavingsGoal | null} props.goal - Existing goal for editing, null for creation
+ * @param {Function} props.onClose - Handler to close the modal
+ * @param {Function} props.onSuccess - Handler called after successful save
+ * @returns {JSX.Element} A modal dialog containing the goal form
+ *
+ * @example
+ * // Create new goal
+ * <GoalForm
+ *   goal={null}
+ *   onClose={() => setShowForm(false)}
+ *   onSuccess={() => { setShowForm(false); refreshGoals(); }}
+ * />
+ *
+ * @example
+ * // Edit existing goal
+ * <GoalForm
+ *   goal={selectedGoal}
+ *   onClose={() => setEditingGoal(null)}
+ *   onSuccess={() => { setEditingGoal(null); refreshGoals(); }}
+ * />
+ */
 export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
-  // Extract baby metadata if editing a baby goal
+  // Extract existing metadata if editing a baby or house goal
   const existingBabyMetadata = goal?.type === 'BABY' ? goal.metadata as BabyGoalMetadata | null : null
-  // Extract house metadata if editing a house goal
   const existingHouseMetadata = goal?.type === 'HOUSE' ? goal.metadata as HouseGoalMetadata | null : null
 
+  // Core goal fields - initialize with existing values or defaults
   const [name, setName] = useState(goal?.name ?? '')
   const [type, setType] = useState<GoalType>(goal?.type ?? 'CUSTOM')
   const [targetAmount, setTargetAmount] = useState(goal?.targetAmount?.toString() ?? '')
@@ -34,10 +92,12 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
     goal?.deadline ? new Date(goal.deadline).toISOString().split('T')[0] : ''
   )
   const [priority, setPriority] = useState(goal?.priority?.toString() ?? '1')
+
+  // Form state management
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Baby-specific fields
+  // Baby-specific fields - initialized from existing metadata or defaults
   const [babyName, setBabyName] = useState(existingBabyMetadata?.babyName ?? '')
   const [isPregnancy, setIsPregnancy] = useState(existingBabyMetadata?.isPregnancy ?? true)
   const [expectedDueDate, setExpectedDueDate] = useState(
@@ -50,9 +110,10 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
       ? new Date(existingBabyMetadata.actualBirthDate).toISOString().split('T')[0]
       : ''
   )
+  // Option to create default milestones (nursery setup, baby gear, etc.) for new baby goals
   const [createDefaultMilestones, setCreateDefaultMilestones] = useState(!goal)
 
-  // House-specific fields
+  // House-specific fields - initialized from existing metadata or defaults
   const [targetPrice, setTargetPrice] = useState(existingHouseMetadata?.targetPrice?.toString() ?? '')
   const [targetLocation, setTargetLocation] = useState(existingHouseMetadata?.targetLocation ?? '')
   const [targetBedrooms, setTargetBedrooms] = useState(existingHouseMetadata?.targetBedrooms?.toString() ?? '')
@@ -60,15 +121,27 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
   const [downPaymentPct, setDownPaymentPct] = useState(existingHouseMetadata?.downPaymentPct?.toString() ?? '20')
   const [propertyType, setPropertyType] = useState<PropertyType | ''>(existingHouseMetadata?.propertyType ?? '')
 
+  /**
+   * Handles form submission for creating or updating a savings goal.
+   * Builds type-specific metadata, makes API calls, and handles related
+   * configurations like house goal settings and baby milestones.
+   *
+   * @param {React.FormEvent} e - The form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
+    // Prevent page reload on form submission
     e.preventDefault()
+
+    // Reset error state and show loading indicator
     setError('')
     setIsLoading(true)
 
     try {
-      // Build baby metadata if type is BABY
+      // Build type-specific metadata based on goal type
       let metadata: BabyGoalMetadata | HouseGoalMetadata | undefined
+
       if (type === 'BABY') {
+        // Construct baby goal metadata with conditional date fields
         metadata = {
           babyName: babyName || undefined,
           isPregnancy,
@@ -76,6 +149,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
           actualBirthDate: !isPregnancy && actualBirthDate ? actualBirthDate : undefined,
         }
       } else if (type === 'HOUSE') {
+        // Construct house goal metadata with property details
         metadata = {
           targetPrice: targetPrice ? parseFloat(targetPrice) : undefined,
           targetLocation: targetLocation || undefined,
@@ -86,6 +160,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
         }
       }
 
+      // Prepare the main goal data payload
       const data = {
         name,
         type,
@@ -96,10 +171,12 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
       }
 
       let createdGoal
+
       if (goal) {
+        // Update existing goal via PUT request
         await api.put(`/goals/${goal.id}`, data)
 
-        // Update house goal config if editing a house goal
+        // Update house goal configuration if editing a house goal with price
         if (type === 'HOUSE' && targetPrice) {
           try {
             await api.put(`/goals/${goal.id}/house`, {
@@ -111,19 +188,20 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
               propertyType: propertyType || null,
             })
           } catch {
-            // House goal config might not exist yet for old goals
+            // Silently handle - house goal config might not exist for older goals
           }
         }
       } else {
+        // Create new goal via POST request
         const response = await api.post('/goals', data)
         createdGoal = response.data
 
-        // Create default milestones for new baby goals
+        // Create default milestones for new baby goals if option is selected
         if (type === 'BABY' && createDefaultMilestones && createdGoal?.id) {
           await api.post(`/goals/${createdGoal.id}/milestones/defaults`)
         }
 
-        // Create house goal config for new house goals
+        // Create house goal configuration for new house goals
         if (type === 'HOUSE' && createdGoal?.id && targetPrice) {
           await api.post(`/goals/${createdGoal.id}/house`, {
             targetPrice: parseFloat(targetPrice),
@@ -135,10 +213,14 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
           })
         }
       }
+
+      // Notify parent component of successful operation
       onSuccess()
     } catch (err) {
+      // Display error message to user
       setError(err instanceof Error ? err.message : 'Failed to save goal')
     } finally {
+      // Always reset loading state
       setIsLoading(false)
     }
   }
@@ -146,10 +228,12 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Modal header - shows different text for create vs edit mode */}
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           {goal ? 'Edit Savings Goal' : 'Create Savings Goal'}
         </h2>
 
+        {/* Error message display */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-3 rounded-md mb-4">
             {error}
@@ -157,6 +241,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Goal name input field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Goal Name
@@ -171,6 +256,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             />
           </div>
 
+          {/* Goal type visual selector - grid of icons */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Goal Type
@@ -199,6 +285,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             </div>
           </div>
 
+          {/* Target amount input field with currency prefix */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Target Amount
@@ -218,6 +305,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             </div>
           </div>
 
+          {/* Target date input field (optional) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Target Date (optional)
@@ -230,6 +318,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             />
           </div>
 
+          {/* Priority selector dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Priority
@@ -245,13 +334,14 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             </select>
           </div>
 
-          {/* Baby-specific fields */}
+          {/* Baby-specific fields - conditionally rendered when goal type is BABY */}
           {type === 'BABY' && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 space-y-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <span>👶</span> Baby Details
               </h3>
 
+              {/* Baby name input (optional) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Baby's Name (optional)
@@ -265,11 +355,13 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 />
               </div>
 
+              {/* Pregnancy status toggle buttons */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status
                 </label>
                 <div className="flex gap-2">
+                  {/* Expecting option */}
                   <button
                     type="button"
                     onClick={() => setIsPregnancy(true)}
@@ -281,6 +373,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                   >
                     <span>🤰</span> Expecting
                   </button>
+                  {/* Already born option */}
                   <button
                     type="button"
                     onClick={() => setIsPregnancy(false)}
@@ -295,6 +388,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 </div>
               </div>
 
+              {/* Conditional date field based on pregnancy status */}
               {isPregnancy ? (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -321,6 +415,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 </div>
               )}
 
+              {/* Default milestones checkbox - only shown when creating new baby goal */}
               {!goal && (
                 <div className="flex items-center gap-2">
                   <input
@@ -341,13 +436,14 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             </div>
           )}
 
-          {/* House-specific fields */}
+          {/* House-specific fields - conditionally rendered when goal type is HOUSE */}
           {type === 'HOUSE' && (
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 space-y-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <span>🏠</span> House Details
               </h3>
 
+              {/* Target home price input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Target Home Price
@@ -366,6 +462,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 </div>
               </div>
 
+              {/* Target location input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Target Location
@@ -379,6 +476,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 />
               </div>
 
+              {/* Bedrooms and bathrooms inputs in a grid layout */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -409,6 +507,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                 </div>
               </div>
 
+              {/* Down payment percentage input with helper text */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Down Payment %
@@ -426,11 +525,13 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
                   />
                   <span className="absolute right-3 top-2 text-gray-500 dark:text-gray-400">%</span>
                 </div>
+                {/* PMI avoidance tip */}
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   20% or more avoids PMI (private mortgage insurance)
                 </p>
               </div>
 
+              {/* Property type visual selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Property Type
@@ -461,7 +562,9 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             </div>
           )}
 
+          {/* Form action buttons */}
           <div className="flex gap-3 pt-4">
+            {/* Cancel button - closes modal without saving */}
             <button
               type="button"
               onClick={onClose}
@@ -469,6 +572,7 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
             >
               Cancel
             </button>
+            {/* Submit button - shows loading state and appropriate label */}
             <button
               type="submit"
               disabled={isLoading}

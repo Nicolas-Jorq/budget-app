@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Main Application Entry Point.
+ *
+ * This is the root component of the Budget App that sets up the application
+ * structure including context providers and routing configuration. It establishes
+ * the provider hierarchy and defines all application routes.
+ *
+ * Provider hierarchy (outer to inner):
+ * 1. ThemeProvider - Provides light/dark theme management
+ * 2. AuthProvider - Provides authentication state and methods
+ * 3. BrowserRouter - Provides React Router navigation context
+ *
+ * @module App
+ */
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -14,14 +29,55 @@ import HouseGoalDetail from './pages/HouseGoalDetail'
 import BankStatements from './pages/BankStatements'
 import DocumentReview from './pages/DocumentReview'
 
+/**
+ * Root application component that configures providers and routing.
+ *
+ * The application structure:
+ * - Public routes: /login, /register (accessible without authentication)
+ * - Protected routes: All other routes (require authentication)
+ *
+ * Protected routes are nested under a Layout component that provides
+ * the common UI structure (sidebar, navbar) for authenticated pages.
+ *
+ * Route structure:
+ * - / (protected, Layout wrapper)
+ *   - index -> Dashboard (default route)
+ *   - /budgets -> Budgets management
+ *   - /transactions -> Transaction history
+ *   - /goals -> Savings goals list
+ *   - /goals/:id/baby -> Baby savings goal details
+ *   - /goals/:id/house -> House savings goal details
+ *   - /bank-statements -> Bank statements list
+ *   - /bank-statements/:id -> Individual document review
+ * - /login (public) -> Login page
+ * - /register (public) -> Registration page
+ *
+ * @returns {JSX.Element} The complete application with providers and routes
+ *
+ * @example
+ * // Rendering the app in main.tsx
+ * import App from './App'
+ *
+ * ReactDOM.createRoot(document.getElementById('root')!).render(
+ *   <React.StrictMode>
+ *     <App />
+ *   </React.StrictMode>
+ * )
+ */
 function App() {
   return (
+    // ThemeProvider must be outermost to provide theme to all components
     <ThemeProvider>
+      {/* AuthProvider wraps routes to provide auth state throughout */}
       <AuthProvider>
         <BrowserRouter>
         <Routes>
+          {/* Public routes - accessible without authentication */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Protected routes - require authentication */}
+          {/* All authenticated routes share the Layout component */}
           <Route
             path="/"
             element={
@@ -30,13 +86,16 @@ function App() {
               </ProtectedRoute>
             }
           >
+            {/* Nested routes render inside Layout's Outlet */}
             <Route index element={<Dashboard />} />
             <Route path="budgets" element={<Budgets />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="goals" element={<Goals />} />
+            {/* Dynamic goal detail routes with type-specific pages */}
             <Route path="goals/:id/baby" element={<BabyGoalDetail />} />
             <Route path="goals/:id/house" element={<HouseGoalDetail />} />
             <Route path="bank-statements" element={<BankStatements />} />
+            {/* Dynamic document review route */}
             <Route path="bank-statements/:id" element={<DocumentReview />} />
           </Route>
         </Routes>

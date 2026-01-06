@@ -35,6 +35,6 @@ export const authenticate = (
 
 export const generateToken = (userId: string): string => {
   return jwt.sign({ userId }, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
+    expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
   })
 }

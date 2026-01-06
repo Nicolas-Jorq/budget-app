@@ -1,7 +1,43 @@
+/**
+ * @fileoverview Login page component for user authentication.
+ *
+ * This page handles user authentication by collecting email and password
+ * credentials and submitting them to the auth service. On successful login,
+ * users are redirected to the dashboard. The page includes error handling
+ * for failed login attempts and provides a link to the registration page.
+ *
+ * Authentication Flow:
+ * 1. User enters email and password
+ * 2. Form submission triggers login via AuthContext
+ * 3. On success: JWT token stored, redirect to dashboard
+ * 4. On failure: Error message displayed to user
+ *
+ * @module pages/Login
+ */
+
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+/**
+ * Login page component for user authentication.
+ *
+ * This component renders a centered login form with email and password fields.
+ * It integrates with the AuthContext for authentication and uses React Router
+ * for navigation after successful login.
+ *
+ * State Management:
+ * - email/password: Form input values (controlled components)
+ * - error: Error message to display on failed login
+ * - isLoading: Loading state during authentication request
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Login page with form
+ *
+ * @example
+ * // Used in router configuration for public routes
+ * <Route path="/login" element={<Login />} />
+ */
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -10,15 +46,22 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
+  /**
+   * Handles form submission for user login.
+   * Prevents default form behavior, calls auth service, and handles navigation/errors.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setError('')  // Clear any previous error messages
     setIsLoading(true)
 
     try {
+      // Attempt login via AuthContext (stores JWT on success)
       await login(email, password)
+      // Redirect to dashboard on successful authentication
       navigate('/')
     } catch (err) {
+      // Display error message to user
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setIsLoading(false)

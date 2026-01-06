@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Baby Goal detail page component for tracking baby-related savings.
+ *
+ * This specialized goal detail page is designed for parents saving for baby expenses.
+ * It extends the basic goal functionality with baby-specific features including:
+ * - Due date tracking (for pregnancy) or birth date display
+ * - Baby-specific milestones (nursery, stroller, diapers, etc.)
+ * - Timeline view organized by pregnancy/birth phases
+ * - Expense projections by category
+ *
+ * The page is organized into tabs:
+ * - Overview: Quick stats and recent milestones
+ * - Milestones: All baby expense milestones with CRUD operations
+ * - Timeline: Visual timeline of savings phases
+ * - Projections: Expense forecasting by category
+ *
+ * @module pages/BabyGoalDetail
+ */
+
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../services/api'
@@ -14,8 +33,37 @@ import BabyMilestoneForm from '../components/baby/BabyMilestoneForm'
 import MilestoneContributionForm from '../components/baby/MilestoneContributionForm'
 import GoalForm from '../components/GoalForm'
 
+/**
+ * Available tab types for navigating the baby goal detail page.
+ * @typedef {'overview' | 'milestones' | 'timeline' | 'projections'} TabType
+ */
 type TabType = 'overview' | 'milestones' | 'timeline' | 'projections'
 
+/**
+ * Baby Goal detail page component for managing baby-related savings goals.
+ *
+ * This component provides a comprehensive interface for tracking savings
+ * toward baby expenses with specialized features for expecting or new parents.
+ * It fetches goal data, milestones, timeline, and projections in parallel.
+ *
+ * URL Parameters:
+ * - id: The goal ID from the route (e.g., /goals/baby/:id)
+ *
+ * State Management:
+ * - goal: The parent savings goal object
+ * - milestones: Array of baby-specific expense milestones
+ * - timeline: Timeline data organized by phases
+ * - projections: Expense projection data by category
+ * - activeTab: Currently selected tab view
+ * - Form states for goal editing and milestone management
+ *
+ * @component
+ * @returns {JSX.Element} The rendered Baby Goal detail page
+ *
+ * @example
+ * // Used in router configuration
+ * <Route path="/goals/baby/:id" element={<BabyGoalDetail />} />
+ */
 export default function BabyGoalDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -34,9 +82,14 @@ export default function BabyGoalDetail() {
   const [editingMilestone, setEditingMilestone] = useState<BabyMilestone | null>(null)
   const [contributingMilestone, setContributingMilestone] = useState<BabyMilestone | null>(null)
 
+  /**
+   * Fetches all data required for the baby goal detail page.
+   * Makes parallel API requests for goal, milestones, timeline, and projections.
+   */
   const fetchData = async () => {
     if (!id) return
     try {
+      // Parallel fetch for all required data - improves load time
       const [goalRes, milestonesRes, timelineRes, projectionsRes] = await Promise.all([
         api.get(`/goals/${id}`),
         api.get(`/goals/${id}/milestones`),
@@ -54,6 +107,7 @@ export default function BabyGoalDetail() {
     }
   }
 
+  // Fetch data on mount and when goal ID changes
   useEffect(() => {
     fetchData()
   }, [id])
@@ -97,12 +151,19 @@ export default function BabyGoalDetail() {
     )
   }
 
+  // Extract baby-specific metadata from the goal
   const metadata = goal.metadata as BabyGoalMetadata | null
+
+  // Calculate progress percentage, capped at 100%
   const percentage = goal.targetAmount > 0
     ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
     : 0
 
-  // Calculate days until due date
+  /**
+   * Calculates days remaining until expected due date or birth date.
+   * Returns negative number if date has passed.
+   * @returns {number | null} Days until due date, or null if no date set
+   */
   const getDaysUntilDue = () => {
     const dueDate = metadata?.expectedDueDate || metadata?.actualBirthDate
     if (!dueDate) return null
@@ -368,7 +429,7 @@ export default function BabyGoalDetail() {
                 {/* Timeline line */}
                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
 
-                {timeline.phases.map((phase, index) => (
+                {timeline.phases.map((phase) => (
                   <div key={phase.name} className="relative pl-10 pb-8 last:pb-0">
                     {/* Timeline dot */}
                     <div className="absolute left-2 w-5 h-5 rounded-full bg-pink-500 border-4 border-white dark:border-gray-800" />
