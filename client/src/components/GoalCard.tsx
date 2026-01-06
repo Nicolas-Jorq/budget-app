@@ -1,4 +1,5 @@
-import { SavingsGoal, GOAL_TYPE_INFO } from '../types'
+import { Link } from 'react-router-dom'
+import { SavingsGoal, GOAL_TYPE_INFO, BabyGoalMetadata } from '../types'
 
 interface GoalCardProps {
   goal: SavingsGoal
@@ -8,6 +9,8 @@ interface GoalCardProps {
 }
 
 export default function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalCardProps) {
+  const isBabyGoal = goal.type === 'BABY'
+  const babyMetadata = isBabyGoal ? goal.metadata as BabyGoalMetadata | null : null
   const currentAmount = Number(goal.currentAmount)
   const targetAmount = Number(goal.targetAmount)
   const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0
@@ -113,16 +116,45 @@ export default function GoalCard({ goal, onEdit, onDelete, onContribute }: GoalC
         </div>
       )}
 
-      {/* Contribute Button */}
-      {!goal.isCompleted && (
-        <button
-          onClick={onContribute}
-          className="w-full py-2 px-4 rounded-md text-white font-medium transition-colors hover:opacity-90"
-          style={{ backgroundColor: displayColor }}
-        >
-          + Add Contribution
-        </button>
+      {/* Baby Goal Info */}
+      {isBabyGoal && babyMetadata && (
+        <div className="mb-4 p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+          <div className="flex items-center gap-2 text-sm text-pink-700 dark:text-pink-300">
+            <span>{babyMetadata.isPregnancy ? '🤰' : '👶'}</span>
+            <span>
+              {babyMetadata.babyName ? `${babyMetadata.babyName} - ` : ''}
+              {babyMetadata.isPregnancy ? 'Expecting' : 'Born'}
+              {babyMetadata.expectedDueDate && babyMetadata.isPregnancy && (
+                <span className="ml-1">
+                  (Due {new Date(babyMetadata.expectedDueDate).toLocaleDateString()})
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
       )}
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        {!goal.isCompleted && (
+          <button
+            onClick={onContribute}
+            className="flex-1 py-2 px-4 rounded-md text-white font-medium transition-colors hover:opacity-90"
+            style={{ backgroundColor: displayColor }}
+          >
+            + Contribute
+          </button>
+        )}
+        {isBabyGoal && (
+          <Link
+            to={`/goals/${goal.id}/baby`}
+            className="flex-1 py-2 px-4 rounded-md border-2 font-medium text-center transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+            style={{ borderColor: displayColor, color: displayColor }}
+          >
+            View Details
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

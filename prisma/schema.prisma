@@ -67,22 +67,23 @@ enum GoalType {
 }
 
 model SavingsGoal {
-  id            String         @id @default(cuid())
-  name          String
-  type          GoalType
-  targetAmount  Decimal        @db.Decimal(12, 2)
-  currentAmount Decimal        @default(0) @db.Decimal(12, 2)
-  deadline      DateTime?
-  priority      Int            @default(1)  // 1 = highest priority
-  icon          String?
-  color         String?
-  metadata      Json?          // Flexible storage for type-specific data
-  isCompleted   Boolean        @default(false)
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contributions Contribution[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String          @id @default(cuid())
+  name           String
+  type           GoalType
+  targetAmount   Decimal         @db.Decimal(12, 2)
+  currentAmount  Decimal         @default(0) @db.Decimal(12, 2)
+  deadline       DateTime?
+  priority       Int             @default(1)  // 1 = highest priority
+  icon           String?
+  color          String?
+  metadata       Json?           // Flexible storage for type-specific data
+  isCompleted    Boolean         @default(false)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions  Contribution[]
+  babyMilestones BabyMilestone[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   @@map("savings_goals")
 }
@@ -98,4 +99,32 @@ model Contribution {
   createdAt     DateTime     @default(now())
 
   @@map("contributions")
+}
+
+// Baby Savings Milestones
+enum MilestoneCategory {
+  PRE_BIRTH
+  NURSERY
+  GEAR
+  FIRST_YEAR
+  CHILDCARE
+  HEALTHCARE
+  EDUCATION
+}
+
+model BabyMilestone {
+  id            String            @id @default(cuid())
+  goalId        String
+  goal          SavingsGoal       @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  name          String
+  category      MilestoneCategory
+  targetAmount  Decimal           @db.Decimal(10, 2)
+  currentAmount Decimal           @default(0) @db.Decimal(10, 2)
+  isCompleted   Boolean           @default(false)
+  dueMonth      Int?              // Months from birth when expense occurs (0 = pre-birth, negative = before birth)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("baby_milestones")
 }

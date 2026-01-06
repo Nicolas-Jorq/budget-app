@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import api from '../services/api'
-import { SavingsGoal, GoalType, GOAL_TYPE_INFO } from '../types'
+import { SavingsGoal, GoalType, GOAL_TYPE_INFO, BabyGoalMetadata } from '../types'
 
 interface GoalFormProps {
   goal: SavingsGoal | null
@@ -20,6 +20,9 @@ const goalTypes: GoalType[] = [
 ]
 
 export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
+  // Extract baby metadata if editing a baby goal
+  const existingBabyMetadata = goal?.type === 'BABY' ? goal.metadata as BabyGoalMetadata | null : null
+
   const [name, setName] = useState(goal?.name ?? '')
   const [type, setType] = useState<GoalType>(goal?.type ?? 'CUSTOM')
   const [targetAmount, setTargetAmount] = useState(goal?.targetAmount?.toString() ?? '')
@@ -30,24 +33,58 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Baby-specific fields
+  const [babyName, setBabyName] = useState(existingBabyMetadata?.babyName ?? '')
+  const [isPregnancy, setIsPregnancy] = useState(existingBabyMetadata?.isPregnancy ?? true)
+  const [expectedDueDate, setExpectedDueDate] = useState(
+    existingBabyMetadata?.expectedDueDate
+      ? new Date(existingBabyMetadata.expectedDueDate).toISOString().split('T')[0]
+      : ''
+  )
+  const [actualBirthDate, setActualBirthDate] = useState(
+    existingBabyMetadata?.actualBirthDate
+      ? new Date(existingBabyMetadata.actualBirthDate).toISOString().split('T')[0]
+      : ''
+  )
+  const [createDefaultMilestones, setCreateDefaultMilestones] = useState(!goal)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
+      // Build baby metadata if type is BABY
+      let metadata: BabyGoalMetadata | undefined
+      if (type === 'BABY') {
+        metadata = {
+          babyName: babyName || undefined,
+          isPregnancy,
+          expectedDueDate: isPregnancy && expectedDueDate ? expectedDueDate : undefined,
+          actualBirthDate: !isPregnancy && actualBirthDate ? actualBirthDate : undefined,
+        }
+      }
+
       const data = {
         name,
         type,
         targetAmount: parseFloat(targetAmount),
         deadline: deadline || null,
         priority: parseInt(priority, 10),
+        metadata,
       }
 
+      let createdGoal
       if (goal) {
         await api.put(`/goals/${goal.id}`, data)
       } else {
-        await api.post('/goals', data)
+        const response = await api.post('/goals', data)
+        createdGoal = response.data
+
+        // Create default milestones for new baby goals
+        if (type === 'BABY' && createDefaultMilestones && createdGoal?.id) {
+          await api.post(`/goals/${createdGoal.id}/milestones/defaults`)
+        }
       }
       onSuccess()
     } catch (err) {
@@ -158,6 +195,102 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
               <option value="3">Low Priority</option>
             </select>
           </div>
+
+          {/* Baby-specific fields */}
+          {type === 'BABY' && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>👶</span> Baby Details
+              </h3>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Baby's Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={babyName}
+                  onChange={(e) => setBabyName(e.target.value)}
+                  placeholder="e.g., Emma"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Status
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsPregnancy(true)}
+                    className={`flex-1 py-2 px-3 rounded-md border-2 transition-all flex items-center justify-center gap-2 ${
+                      isPregnancy
+                        ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    <span>🤰</span> Expecting
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPregnancy(false)}
+                    className={`flex-1 py-2 px-3 rounded-md border-2 transition-all flex items-center justify-center gap-2 ${
+                      !isPregnancy
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                    }`}
+                  >
+                    <span>👶</span> Already Born
+                  </button>
+                </div>
+              </div>
+
+              {isPregnancy ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Expected Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={expectedDueDate}
+                    onChange={(e) => setExpectedDueDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Birth Date
+                  </label>
+                  <input
+                    type="date"
+                    value={actualBirthDate}
+                    onChange={(e) => setActualBirthDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              )}
+
+              {!goal && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="createDefaultMilestones"
+                    checked={createDefaultMilestones}
+                    onChange={(e) => setCreateDefaultMilestones(e.target.checked)}
+                    className="h-4 w-4 text-primary-600 rounded border-gray-300 dark:border-gray-600 focus:ring-primary-500"
+                  />
+                  <label
+                    htmlFor="createDefaultMilestones"
+                    className="text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    Create default milestones (nursery, gear, etc.)
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

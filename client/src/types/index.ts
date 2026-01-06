@@ -151,3 +151,93 @@ export const GOAL_TYPE_INFO: Record<GoalType, { label: string; icon: string; col
   RETIREMENT: { label: 'Retirement', icon: '🏖️', color: '#8b5cf6' },
   CUSTOM: { label: 'Custom', icon: '🎯', color: '#64748b' },
 }
+
+// Baby Goals Types
+export type MilestoneCategory =
+  | 'PRE_BIRTH'
+  | 'NURSERY'
+  | 'GEAR'
+  | 'FIRST_YEAR'
+  | 'CHILDCARE'
+  | 'HEALTHCARE'
+  | 'EDUCATION'
+
+export interface BabyMilestone {
+  id: string
+  goalId: string
+  name: string
+  category: MilestoneCategory
+  targetAmount: number
+  currentAmount: number
+  isCompleted: boolean
+  dueMonth: number | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BabyGoalMetadata {
+  babyName?: string
+  expectedDueDate?: string
+  actualBirthDate?: string
+  isPregnancy: boolean
+}
+
+export interface ExpenseProjection {
+  category: MilestoneCategory
+  label: string
+  estimatedCost: number
+  currentSaved: number
+  dueMonth: number
+  isOverdue: boolean
+  hasExistingMilestone: boolean
+  percentComplete: number
+}
+
+export interface ProjectionsResponse {
+  projections: ExpenseProjection[]
+  totalProjected: number
+  totalSaved: number
+  shortfall: number
+  percentComplete: number
+  currentMonthFromBirth: number
+  dueDate: string | null
+}
+
+export interface TimelinePhase {
+  name: string
+  milestones: {
+    id: string
+    name: string
+    category: MilestoneCategory
+    targetAmount: number
+    currentAmount: number
+    isCompleted: boolean
+    dueMonth: number | null
+    percentComplete: number
+  }[]
+  totalTarget: number
+  totalSaved: number
+}
+
+export interface TimelineResponse {
+  goalId: string
+  goalName: string
+  dueDate: string | null
+  isPregnancy: boolean
+  babyName?: string
+  phases: TimelinePhase[]
+  totalMilestones: number
+  completedMilestones: number
+}
+
+// Milestone category display info
+export const MILESTONE_CATEGORY_INFO: Record<MilestoneCategory, { label: string; icon: string; color: string; defaultAmount: number }> = {
+  PRE_BIRTH: { label: 'Pre-Birth', icon: '🤰', color: '#ec4899', defaultAmount: 2500 },
+  NURSERY: { label: 'Nursery', icon: '🛏️', color: '#8b5cf6', defaultAmount: 2000 },
+  GEAR: { label: 'Gear & Equipment', icon: '🍼', color: '#3b82f6', defaultAmount: 1500 },
+  FIRST_YEAR: { label: 'First Year', icon: '👶', color: '#10b981', defaultAmount: 3000 },
+  CHILDCARE: { label: 'Childcare', icon: '🏫', color: '#f59e0b', defaultAmount: 12000 },
+  HEALTHCARE: { label: 'Healthcare', icon: '🏥', color: '#ef4444', defaultAmount: 2000 },
+  EDUCATION: { label: 'Education Fund', icon: '🎓', color: '#6366f1', defaultAmount: 5000 },
+}

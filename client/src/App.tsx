@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard'
 import Budgets from './pages/Budgets'
 import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
+import BabyGoalDetail from './pages/BabyGoalDetail'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="budgets" element={<Budgets />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="goals" element={<Goals />} />
+            <Route path="goals/:id/baby" element={<BabyGoalDetail />} />
           </Route>
         </Routes>
         </BrowserRouter>
