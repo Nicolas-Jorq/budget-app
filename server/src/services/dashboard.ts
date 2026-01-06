@@ -1,7 +1,11 @@
 import { prisma } from '../lib/prisma.js'
+import { createLogger } from '../lib/logger.js'
+
+const logger = createLogger('dashboard-service')
 
 export const dashboardService = {
   async getStats(userId: string) {
+    logger.debug('Fetching dashboard stats', { userId })
     const [budgets, transactions] = await Promise.all([
       prisma.budget.findMany({ where: { userId } }),
       prisma.transaction.findMany({ where: { userId } }),
@@ -18,6 +22,16 @@ export const dashboardService = {
       .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
+    logger.debug('Dashboard stats computed', {
+      userId,
+      totalBudget,
+      totalSpent,
+      totalIncome,
+      totalExpenses,
+      budgetCount: budgets.length,
+      transactionCount: transactions.length,
+    })
+
     return {
       totalBudget,
       totalSpent,
@@ -29,6 +43,7 @@ export const dashboardService = {
   },
 
   async getChartData(userId: string) {
+    logger.debug('Fetching chart data', { userId })
     const [budgets, transactions] = await Promise.all([
       prisma.budget.findMany({ where: { userId } }),
       prisma.transaction.findMany({
@@ -137,6 +152,14 @@ export const dashboardService = {
         category: t.category,
         date: t.date,
       }))
+
+    logger.debug('Chart data computed', {
+      userId,
+      categoriesCount: spendingByCategory.length,
+      monthsCount: monthlyComparison.length,
+      budgetsCount: budgetProgress.length,
+      recentCount: recentTransactions.length,
+    })
 
     return {
       spendingByCategory,
