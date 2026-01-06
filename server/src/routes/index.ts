@@ -22,6 +22,7 @@ import authRoutes from './auth.js'
 // Module system
 import { modulesRoutes } from '../modules/core/index.js'
 import { financeRoutes } from '../modules/finance/index.js'
+import { healthRoutes } from '../modules/health/index.js'
 
 // Legacy route imports (for backward compatibility)
 import budgetRoutes from './budgets.js'
@@ -40,11 +41,11 @@ const router = Router()
 router.get('/', (_req, res) => {
   res.json({
     message: 'Budget App API',
-    version: '1.4.0',
+    version: '1.5.0',
     modules: {
       core: '/api/modules',
       finance: '/api/finance',
-      health: '/api/health (coming soon)',
+      health: '/api/health',
       tasks: '/api/tasks (coming soon)',
       lifeGoals: '/api/life-goals (coming soon)',
     },
@@ -86,6 +87,9 @@ router.use('/modules', modulesRoutes)
 
 // Finance module - all finance routes under /api/finance/*
 router.use('/finance', financeRoutes)
+
+// Health module - all health routes under /api/health/*
+router.use('/health', healthRoutes)
 
 // ==========================================
 // Legacy Routes (Backward Compatibility)

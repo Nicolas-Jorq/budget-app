@@ -25,6 +25,13 @@ model User {
   // Module system relations
   modules               UserModule[]
   obsidianSync          ObsidianSync?
+  // Health module relations
+  workouts              Workout[]
+  weightLogs            WeightLog[]
+  meals                 Meal[]
+  sleepLogs             SleepLog[]
+  waterLogs             WaterLog[]
+  healthGoals           HealthGoal[]
 
   @@map("users")
 }
@@ -389,4 +396,121 @@ model PendingTransaction {
   updatedAt     DateTime                 @updatedAt
 
   @@map("pending_transactions")
+}
+
+// ==========================================
+// Health Module - Fitness, Nutrition, Wellness
+// ==========================================
+
+enum WorkoutType {
+  CARDIO
+  STRENGTH
+  FLEXIBILITY
+  SPORTS
+  OTHER
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+/// Workout/exercise session tracking
+model Workout {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String      // "Morning Run", "Leg Day", etc.
+  type        WorkoutType
+  duration    Int         // Duration in minutes
+  calories    Int?        // Estimated calories burned
+  notes       String?
+  exercises   Json?       // Array of exercises with sets/reps/weight
+  date        DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("workouts")
+}
+
+/// Weight tracking over time
+model WeightLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weight    Decimal  @db.Decimal(5, 2) // Weight in user's preferred unit
+  unit      String   @default("kg")    // "kg" or "lbs"
+  bodyFat   Decimal? @db.Decimal(4, 1) // Body fat percentage
+  notes     String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("weight_logs")
+}
+
+/// Meal/nutrition tracking
+model Meal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   // "Chicken Salad", "Protein Shake"
+  type        MealType
+  calories    Int?
+  protein     Decimal? @db.Decimal(6, 1) // grams
+  carbs       Decimal? @db.Decimal(6, 1) // grams
+  fat         Decimal? @db.Decimal(6, 1) // grams
+  fiber       Decimal? @db.Decimal(6, 1) // grams
+  notes       String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("meals")
+}
+
+/// Sleep tracking
+model SleepLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bedTime   DateTime // When user went to bed
+  wakeTime  DateTime // When user woke up
+  duration  Int      // Duration in minutes (calculated)
+  quality   Int?     // 1-5 rating
+  notes     String?
+  date      DateTime @default(now()) // The date this sleep is logged for
+  createdAt DateTime @default(now())
+
+  @@map("sleep_logs")
+}
+
+/// Water intake tracking (daily)
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int      // Amount in ml
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("water_logs")
+}
+
+/// Health goals (weight goal, fitness goals, etc.)
+model HealthGoal {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String    // "weight", "steps", "workout_frequency", etc.
+  targetValue  Decimal   @db.Decimal(10, 2)
+  currentValue Decimal   @default(0) @db.Decimal(10, 2)
+  unit         String    // "kg", "lbs", "steps", "days/week"
+  deadline     DateTime?
+  isCompleted  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("health_goals")
 }

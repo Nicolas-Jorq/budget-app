@@ -31,6 +31,7 @@ import HouseGoalDetail from './pages/HouseGoalDetail'
 import BankStatements from './pages/BankStatements'
 import DocumentReview from './pages/DocumentReview'
 import Categories from './pages/Categories'
+import { HealthDashboard, Workouts, Weight, Nutrition, Sleep } from './pages/health'
 
 /**
  * Root application component that configures providers and routing.
@@ -52,6 +53,11 @@ import Categories from './pages/Categories'
  *   - /goals/:id/house -> House savings goal details
  *   - /bank-statements -> Bank statements list
  *   - /bank-statements/:id -> Individual document review
+ *   - /health -> Health dashboard
+ *   - /health/workouts -> Workout tracking
+ *   - /health/weight -> Weight tracking
+ *   - /health/nutrition -> Nutrition/meal tracking
+ *   - /health/sleep -> Sleep tracking
  * - /login (public) -> Login page
  * - /register (public) -> Registration page
  *
@@ -104,6 +110,13 @@ function App() {
             <Route path="bank-statements" element={<BankStatements />} />
             {/* Dynamic document review route */}
             <Route path="bank-statements/:id" element={<DocumentReview />} />
+
+            {/* Health module routes */}
+            <Route path="health" element={<HealthDashboard />} />
+            <Route path="health/workouts" element={<Workouts />} />
+            <Route path="health/weight" element={<Weight />} />
+            <Route path="health/nutrition" element={<Nutrition />} />
+            <Route path="health/sleep" element={<Sleep />} />
           </Route>
         </Routes>
         </BrowserRouter>

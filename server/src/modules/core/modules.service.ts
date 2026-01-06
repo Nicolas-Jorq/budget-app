@@ -13,26 +13,36 @@ const prisma = new PrismaClient()
 
 /**
  * Default modules enabled for new users.
+ * FINANCE is the core module, HEALTH is enabled by default for all users.
  */
-const DEFAULT_MODULES: ModuleType[] = ['FINANCE']
+const DEFAULT_MODULES: ModuleType[] = ['FINANCE', 'HEALTH']
 
 /**
- * Seed default modules for a user if they don't have any.
+ * Seed default modules for a user if they're missing any.
+ * This ensures existing users get new default modules (like HEALTH) automatically.
  */
 async function seedDefaultModules(userId: string): Promise<void> {
-  const existingCount = await prisma.userModule.count({ where: { userId } })
+  const existingModules = await prisma.userModule.findMany({
+    where: { userId },
+    select: { module: true },
+  })
 
-  if (existingCount > 0) {
-    return // User already has modules
+  const existingModuleTypes = existingModules.map((m) => m.module)
+  const missingModules = DEFAULT_MODULES.filter(
+    (module) => !existingModuleTypes.includes(module)
+  )
+
+  if (missingModules.length === 0) {
+    return // User has all default modules
   }
 
-  const modules = DEFAULT_MODULES.map((module) => ({
+  const modulesToCreate = missingModules.map((module) => ({
     userId,
     module,
   }))
 
   await prisma.userModule.createMany({
-    data: modules,
+    data: modulesToCreate,
   })
 }
 

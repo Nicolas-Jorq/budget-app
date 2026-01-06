@@ -2,12 +2,21 @@
  * @fileoverview Main Layout Component for authenticated pages.
  *
  * Provides the primary layout structure using the Batman-inspired theme.
- * Features a dark sidebar, navbar, and main content area.
+ * Features a module rail, sidebar, navbar, and main content area.
+ *
+ * Layout structure:
+ * ┌──────┬──────────┬─────────────────────────────┐
+ * │ Rail │ Sidebar  │ Navbar                      │
+ * │      │          ├─────────────────────────────┤
+ * │      │          │ Content (Outlet)            │
+ * │      │          │                             │
+ * └──────┴──────────┴─────────────────────────────┘
  *
  * @module components/Layout
  */
 
 import { Outlet } from 'react-router-dom'
+import ModuleRail from './ModuleRail'
 import Sidebar from './Sidebar'
 import Navbar from './Navbar'
 
@@ -22,7 +31,10 @@ import Navbar from './Navbar'
 export default function Layout() {
   return (
     <div className="flex min-h-screen bg-theme-base">
-      {/* Left sidebar with navigation */}
+      {/* Module rail - icon-based module switching */}
+      <ModuleRail />
+
+      {/* Left sidebar with module-specific navigation */}
       <Sidebar />
 
       {/* Main content area with navbar and page content */}
