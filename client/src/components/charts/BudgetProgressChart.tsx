@@ -24,20 +24,20 @@ interface BudgetProgressChartProps {
 
 /**
  * Determines the progress bar fill color based on budget usage percentage.
- * Uses a traffic light color scheme for intuitive visual feedback.
+ * Uses a traffic light color scheme - visible colors on dark theme.
  *
  * @param {number} percentage - The percentage of budget used (0-100+)
  * @returns {string} Tailwind CSS background color class
  *
  * @example
- * getProgressColor(50)  // Returns 'bg-green-500' (safe)
- * getProgressColor(75)  // Returns 'bg-yellow-500' (warning)
- * getProgressColor(95)  // Returns 'bg-red-500' (danger)
+ * getProgressColor(50)  // Returns green (safe)
+ * getProgressColor(75)  // Returns amber (warning)
+ * getProgressColor(95)  // Returns red (danger)
  */
 function getProgressColor(percentage: number): string {
-  if (percentage >= 90) return 'bg-red-500'
-  if (percentage >= 70) return 'bg-yellow-500'
-  return 'bg-green-500'
+  if (percentage >= 90) return 'bg-[#ef4444]'  // red-500 - visible
+  if (percentage >= 70) return 'bg-[#f59e0b]'  // amber-500 - visible
+  return 'bg-[#22c55e]'  // green-500 - visible
 }
 
 /**
@@ -45,12 +45,12 @@ function getProgressColor(percentage: number): string {
  * Provides a subtle colored background that matches the progress bar fill.
  *
  * @param {number} percentage - The percentage of budget used (0-100+)
- * @returns {string} Tailwind CSS background color class with dark mode variant
+ * @returns {string} Tailwind CSS background color class
  */
 function getProgressBgColor(percentage: number): string {
-  if (percentage >= 90) return 'bg-red-100 dark:bg-red-900/30'
-  if (percentage >= 70) return 'bg-yellow-100 dark:bg-yellow-900/30'
-  return 'bg-green-100 dark:bg-green-900/30'
+  if (percentage >= 90) return 'bg-[#ef4444]/20'
+  if (percentage >= 70) return 'bg-[#f59e0b]/20'
+  return 'bg-[#22c55e]/20'
 }
 
 /**
@@ -77,7 +77,7 @@ export default function BudgetProgressChart({ data }: BudgetProgressChartProps) 
   // Handle empty data state
   if (data.length === 0) {
     return (
-      <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+      <div className="text-center text-content-tertiary py-8">
         No budgets created yet
       </div>
     )
@@ -95,13 +95,13 @@ export default function BudgetProgressChart({ data }: BudgetProgressChartProps) 
             {/* Budget header with name, category, and amounts */}
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-medium text-gray-900 dark:text-white">{budget.name}</span>
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+                <span className="font-medium text-content-primary">{budget.name}</span>
+                <span className="ml-2 text-xs text-content-tertiary bg-theme-elevated px-2 py-0.5 rounded-full">
                   {budget.category}
                 </span>
               </div>
               <div className="text-right">
-                <span className={`text-sm font-medium ${isOverBudget ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                <span className={`text-sm font-medium ${isOverBudget ? 'text-[#b91c1c]' : 'text-content-secondary'}`}>
                   ${budget.spent.toLocaleString()} / ${budget.limit.toLocaleString()}
                 </span>
               </div>
@@ -129,9 +129,9 @@ export default function BudgetProgressChart({ data }: BudgetProgressChartProps) 
             </div>
 
             {/* Footer with percentage and remaining/over amount */}
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex justify-between text-xs text-content-tertiary">
               <span>{budget.percentage}% used</span>
-              <span className={isOverBudget ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+              <span className={isOverBudget ? 'text-[#b91c1c] font-medium' : ''}>
                 {isOverBudget
                   ? `$${Math.abs(remaining).toLocaleString()} over`
                   : `$${remaining.toLocaleString()} remaining`}

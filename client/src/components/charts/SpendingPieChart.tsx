@@ -24,18 +24,17 @@ interface SpendingPieChartProps {
 
 /**
  * Color palette for pie chart segments.
- * Colors are applied cyclically to categories based on their index.
- * Uses Tailwind CSS color values for consistency with the app theme.
+ * Muted but visible colors for dark theme - mid-saturation for 3:1 contrast.
  */
 const COLORS = [
-  '#0ea5e9', // primary-500 (sky blue)
-  '#22c55e', // green-500
-  '#f59e0b', // amber-500
-  '#ef4444', // red-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#14b8a6', // teal-500
-  '#f97316', // orange-500
+  '#3b82f6', // blue-500 - visible on dark
+  '#22c55e', // green-500 - visible on dark
+  '#f59e0b', // amber-500 - visible on dark
+  '#ef4444', // red-500 - visible on dark
+  '#8b5cf6', // violet-500 - visible on dark
+  '#ec4899', // pink-500 - visible on dark
+  '#14b8a6', // teal-500 - visible on dark
+  '#f97316', // orange-500 - visible on dark
 ]
 
 /**
@@ -63,7 +62,7 @@ export default function SpendingPieChart({ data }: SpendingPieChartProps) {
   // Handle empty data state with a user-friendly message
   if (data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+      <div className="h-64 flex items-center justify-center text-content-tertiary">
         No spending data yet
       </div>
     )
@@ -92,9 +91,10 @@ export default function SpendingPieChart({ data }: SpendingPieChartProps) {
         <Tooltip
           formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Amount']}
           contentStyle={{
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
+            backgroundColor: '#1c1c22',
+            border: '1px solid #3f3f46',
             borderRadius: '8px',
+            color: '#f5f5f5',
           }}
         />
         <Legend

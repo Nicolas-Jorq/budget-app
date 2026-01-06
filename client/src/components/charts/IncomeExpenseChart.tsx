@@ -48,7 +48,7 @@ export default function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   // Handle empty data state with informative message
   if (data.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
+      <div className="h-64 flex items-center justify-center text-content-tertiary">
         No data for the last 6 months
       </div>
     )
@@ -57,38 +57,40 @@ export default function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        {/* Grid lines for better readability */}
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        {/* Grid lines for better readability - muted for dark theme */}
+        <CartesianGrid strokeDasharray="3 3" stroke="#2d2d37" />
 
         {/* X-axis showing month labels */}
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: '#a3a3a3' }}
           tickLine={false}
-          axisLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#2d2d37' }}
         />
 
         {/* Y-axis with abbreviated dollar formatting (e.g., $5k) */}
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: '#a3a3a3' }}
           tickLine={false}
-          axisLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#2d2d37' }}
           tickFormatter={(value) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`}
         />
 
-        {/* Tooltip with full dollar amount formatting */}
+        {/* Tooltip with full dollar amount formatting - dark theme */}
         <Tooltip
           formatter={(value) => [`$${Number(value).toLocaleString()}`, '']}
           contentStyle={{
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
+            backgroundColor: '#1c1c22',
+            border: '1px solid #3f3f46',
             borderRadius: '8px',
+            color: '#f5f5f5',
           }}
+          labelStyle={{ color: '#a3a3a3' }}
         />
 
         <Legend wrapperStyle={{ paddingTop: '10px' }} />
 
-        {/* Income bar (green) */}
+        {/* Income bar - visible green on dark theme */}
         <Bar
           dataKey="income"
           name="Income"
@@ -96,7 +98,7 @@ export default function IncomeExpenseChart({ data }: IncomeExpenseChartProps) {
           radius={[4, 4, 0, 0]}
         />
 
-        {/* Expenses bar (red) */}
+        {/* Expenses bar - visible red on dark theme */}
         <Bar
           dataKey="expenses"
           name="Expenses"

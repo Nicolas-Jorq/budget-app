@@ -1,3 +1,182 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Theme System - CSS Custom Properties
+ *
+ * This establishes a design token system that can be swapped per user preference.
+ * Currently implements: Batman-inspired dark theme (Nicolas's style)
+ * Future: Will support additional style variants
+ */
+
+@layer base {
+  :root {
+    /* === BATMAN THEME === */
+    /* Dark, mysterious, badass - muted and brooding */
+
+    /* Background layers (darkest to lightest) */
+    --color-bg-base: 8 8 10;             /* Near black - main background */
+    --color-bg-surface: 18 18 22;        /* Dark charcoal - cards, panels */
+    --color-bg-elevated: 28 28 34;       /* Elevated surfaces - hovers, modals */
+    --color-bg-accent: 38 38 46;         /* Subtle accent backgrounds */
+
+    /* Primary accent - Dark Steel Grey */
+    --color-primary-50: 250 250 250;
+    --color-primary-100: 229 229 229;
+    --color-primary-200: 199 199 204;
+    --color-primary-300: 161 161 170;
+    --color-primary-400: 113 113 122;
+    --color-primary-500: 82 82 91;        /* Main dark grey */
+    --color-primary-600: 63 63 70;
+    --color-primary-700: 51 51 56;
+    --color-primary-800: 39 39 42;
+    --color-primary-900: 24 24 27;
+
+    /* Text hierarchy */
+    --color-text-primary: 245 245 245;    /* Primary text - off white */
+    --color-text-secondary: 163 163 163;  /* Secondary text - muted */
+    --color-text-tertiary: 115 115 115;   /* Tertiary - very muted */
+    --color-text-inverse: 10 10 12;       /* Text on light backgrounds */
+
+    /* Borders & Dividers */
+    --color-border-subtle: 45 45 55;      /* Subtle separation */
+    --color-border-default: 63 63 70;     /* Default borders */
+    --color-border-strong: 82 82 91;      /* Emphasized borders */
+
+    /* Semantic Colors - muted for dark theme */
+    --color-success: 22 163 74;           /* Muted green - income */
+    --color-warning: 202 138 4;           /* Muted amber - warnings */
+    --color-danger: 185 28 28;            /* Muted red - expenses/errors */
+    --color-info: 37 99 235;              /* Muted blue - informational */
+
+    /* Shadows for depth */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+    --shadow-glow: 0 0 15px rgb(82 82 91 / 0.3);  /* Subtle grey glow */
+
+    /* Spacing scale (compact) */
+    --spacing-card: 1rem;                 /* Card padding */
+    --spacing-section: 1.25rem;           /* Between sections */
+
+    /* Border radius - sharp, angular (Batman aesthetic) */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+  }
+
+  /* Apply base styles */
+  body {
+    @apply antialiased;
+    background-color: rgb(var(--color-bg-base));
+    color: rgb(var(--color-text-primary));
+  }
+
+  /* Scrollbar styling for the dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--color-bg-base));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border-default));
+    border-radius: var(--radius-sm);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-border-strong));
+  }
+}
+
+@layer components {
+  /* Card component base */
+  .card {
+    background-color: rgb(var(--color-bg-surface));
+    border: 1px solid rgb(var(--color-border-subtle));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .card-elevated {
+    background-color: rgb(var(--color-bg-elevated));
+    border: 1px solid rgb(var(--color-border-default));
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Button variants */
+  .btn-primary {
+    background-color: rgb(var(--color-primary-500));
+    color: rgb(var(--color-text-inverse));
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+  }
+
+  .btn-primary:hover {
+    background-color: rgb(var(--color-primary-400));
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Gold accent text */
+  .text-accent {
+    color: rgb(var(--color-primary-500));
+  }
+
+  /* Stat card with subtle gold border glow on hover */
+  .stat-card {
+    @apply card;
+    transition: all var(--transition-base);
+  }
+
+  .stat-card:hover {
+    border-color: rgb(var(--color-primary-500) / 0.3);
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@layer utilities {
+  /* Text colors using CSS variables */
+  .text-theme-primary {
+    color: rgb(var(--color-text-primary));
+  }
+
+  .text-theme-secondary {
+    color: rgb(var(--color-text-secondary));
+  }
+
+  .text-theme-tertiary {
+    color: rgb(var(--color-text-tertiary));
+  }
+
+  /* Background utilities */
+  .bg-theme-base {
+    background-color: rgb(var(--color-bg-base));
+  }
+
+  .bg-theme-surface {
+    background-color: rgb(var(--color-bg-surface));
+  }
+
+  .bg-theme-elevated {
+    background-color: rgb(var(--color-bg-elevated));
+  }
+
+  /* Border utilities */
+  .border-theme-subtle {
+    border-color: rgb(var(--color-border-subtle));
+  }
+
+  .border-theme-default {
+    border-color: rgb(var(--color-border-default));
+  }
+}

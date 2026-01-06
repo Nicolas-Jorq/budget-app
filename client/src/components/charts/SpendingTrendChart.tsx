@@ -49,7 +49,7 @@ export default function SpendingTrendChart({ data }: SpendingTrendChartProps) {
   // Handle empty data state
   if (data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-gray-500 dark:text-gray-400">
+      <div className="h-48 flex items-center justify-center text-content-tertiary">
         No spending data this month
       </div>
     )
@@ -65,51 +65,53 @@ export default function SpendingTrendChart({ data }: SpendingTrendChartProps) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        {/* Gradient definition for the area fill */}
+        {/* Gradient definition for the area fill - visible blue on dark theme */}
         <defs>
           <linearGradient id="colorSpending" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
           </linearGradient>
         </defs>
 
         {/* Horizontal grid lines only (vertical=false) for cleaner look */}
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#2d2d37" vertical={false} />
 
         {/* X-axis showing day of month */}
         <XAxis
           dataKey="day"
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: '#a3a3a3' }}
           tickLine={false}
-          axisLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#2d2d37' }}
           interval="preserveStartEnd"
         />
 
         {/* Y-axis with dollar formatting */}
         <YAxis
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: '#a3a3a3' }}
           tickLine={false}
-          axisLine={{ stroke: '#e5e7eb' }}
+          axisLine={{ stroke: '#2d2d37' }}
           tickFormatter={(value) => `$${value}`}
           width={50}
         />
 
-        {/* Tooltip with formatted amount and day label */}
+        {/* Tooltip with formatted amount and day label - dark theme */}
         <Tooltip
           formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Spent']}
           labelFormatter={(label) => `Day ${label}`}
           contentStyle={{
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
+            backgroundColor: '#1c1c22',
+            border: '1px solid #3f3f46',
             borderRadius: '8px',
+            color: '#f5f5f5',
           }}
+          labelStyle={{ color: '#a3a3a3' }}
         />
 
-        {/* Area chart with smooth curve and gradient fill */}
+        {/* Area chart with smooth curve and gradient fill - visible blue */}
         <Area
           type="monotone"
           dataKey="amount"
-          stroke="#0ea5e9"
+          stroke="#3b82f6"
           strokeWidth={2}
           fillOpacity={1}
           fill="url(#colorSpending)"
