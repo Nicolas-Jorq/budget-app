@@ -32,6 +32,7 @@ import BankStatements from './pages/BankStatements'
 import DocumentReview from './pages/DocumentReview'
 import Categories from './pages/Categories'
 import { HealthDashboard, Workouts, Weight, Nutrition, Sleep } from './pages/health'
+import { TasksDashboard, TaskList, Projects } from './pages/tasks'
 
 /**
  * Root application component that configures providers and routing.
@@ -117,6 +118,11 @@ function App() {
             <Route path="health/weight" element={<Weight />} />
             <Route path="health/nutrition" element={<Nutrition />} />
             <Route path="health/sleep" element={<Sleep />} />
+
+            {/* Tasks module routes */}
+            <Route path="tasks" element={<TasksDashboard />} />
+            <Route path="tasks/list" element={<TaskList />} />
+            <Route path="tasks/projects" element={<Projects />} />
           </Route>
         </Routes>
         </BrowserRouter>
