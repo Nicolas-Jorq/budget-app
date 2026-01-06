@@ -72,7 +72,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-border-subtle">
-        <p className="text-xs text-content-tertiary">v1.2.0</p>
+        <p className="text-xs text-content-tertiary">v1.3.0</p>
       </div>
     </aside>
   )
