@@ -417,3 +417,107 @@ export const PROPERTY_TYPE_INFO: Record<PropertyType, { label: string; icon: str
   land: { label: 'Land', icon: '🌳' },
   other: { label: 'Other', icon: '🏛️' },
 }
+
+// Bank Statement Import Types
+export type AccountType = 'CREDIT_CARD' | 'CHECKING' | 'SAVINGS' | 'INVESTMENT'
+
+export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'EXTRACTED' | 'REVIEWED' | 'IMPORTED' | 'FAILED'
+
+export type PendingTransactionStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'IMPORTED' | 'DUPLICATE'
+
+export interface BankAccount {
+  id: string
+  name: string
+  bankName: string
+  accountType: AccountType
+  lastFour: string | null
+  isActive: boolean
+  userId: string
+  createdAt: string
+  updatedAt: string
+  _count?: {
+    documents: number
+  }
+}
+
+export interface BankDocument {
+  id: string
+  filename: string
+  originalName: string
+  fileSize: number
+  mimeType: string
+  status: DocumentStatus
+  statementStartDate: string | null
+  statementEndDate: string | null
+  transactionCount: number | null
+  llmProvider: string | null
+  llmModel: string | null
+  processingTimeMs: number | null
+  processingError: string | null
+  uploadedAt: string
+  processedAt: string | null
+  bankAccount?: {
+    id: string
+    name: string
+    bankName: string
+  } | null
+}
+
+export interface PendingTransaction {
+  id: string
+  date: string
+  description: string
+  originalDescription: string | null
+  amount: number
+  type: 'INCOME' | 'EXPENSE'
+  category: string | null
+  confidence: number | null
+  status: PendingTransactionStatus
+  userCategory: string | null
+  userNotes: string | null
+}
+
+export interface DocumentWithTransactions {
+  document: BankDocument
+  transactions: PendingTransaction[]
+}
+
+export interface LLMProvider {
+  id: string
+  name: string
+  description: string
+  available: boolean
+  setup_url: string | null
+  setup_steps: string[]
+}
+
+export interface DocumentSummary {
+  document_id: string
+  by_status: Record<PendingTransactionStatus, { count: number; total: number }>
+  by_category: Array<{ category: string; count: number; total: number }>
+  ready_to_import: number
+}
+
+export const ACCOUNT_TYPE_INFO: Record<AccountType, { label: string; icon: string }> = {
+  CREDIT_CARD: { label: 'Credit Card', icon: '💳' },
+  CHECKING: { label: 'Checking', icon: '🏦' },
+  SAVINGS: { label: 'Savings', icon: '💰' },
+  INVESTMENT: { label: 'Investment', icon: '📈' },
+}
+
+export const DOCUMENT_STATUS_INFO: Record<DocumentStatus, { label: string; color: string }> = {
+  PENDING: { label: 'Pending', color: 'bg-gray-500' },
+  PROCESSING: { label: 'Processing', color: 'bg-blue-500' },
+  EXTRACTED: { label: 'Ready for Review', color: 'bg-yellow-500' },
+  REVIEWED: { label: 'Reviewed', color: 'bg-purple-500' },
+  IMPORTED: { label: 'Imported', color: 'bg-green-500' },
+  FAILED: { label: 'Failed', color: 'bg-red-500' },
+}
+
+export const TRANSACTION_STATUS_INFO: Record<PendingTransactionStatus, { label: string; color: string }> = {
+  PENDING: { label: 'Pending Review', color: 'bg-gray-500' },
+  APPROVED: { label: 'Approved', color: 'bg-green-500' },
+  REJECTED: { label: 'Rejected', color: 'bg-red-500' },
+  IMPORTED: { label: 'Imported', color: 'bg-blue-500' },
+  DUPLICATE: { label: 'Duplicate', color: 'bg-orange-500' },
+}

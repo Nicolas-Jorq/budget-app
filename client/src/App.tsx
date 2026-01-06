@@ -11,6 +11,8 @@ import Transactions from './pages/Transactions'
 import Goals from './pages/Goals'
 import BabyGoalDetail from './pages/BabyGoalDetail'
 import HouseGoalDetail from './pages/HouseGoalDetail'
+import BankStatements from './pages/BankStatements'
+import DocumentReview from './pages/DocumentReview'
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
             <Route path="goals" element={<Goals />} />
             <Route path="goals/:id/baby" element={<BabyGoalDetail />} />
             <Route path="goals/:id/house" element={<HouseGoalDetail />} />
+            <Route path="bank-statements" element={<BankStatements />} />
+            <Route path="bank-statements/:id" element={<DocumentReview />} />
           </Route>
         </Routes>
         </BrowserRouter>
