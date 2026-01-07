@@ -85,10 +85,28 @@ router.get('/weight', controller.getWeightLogs)
 router.get('/weight/progress', controller.getWeightProgress)
 
 /**
+ * GET /api/health/weight/chart
+ * Get weight data with moving average for chart visualization
+ */
+router.get('/weight/chart', controller.getWeightChart)
+
+/**
  * POST /api/health/weight
  * Log a new weight entry
  */
 router.post('/weight', controller.createWeightLog)
+
+/**
+ * POST /api/health/weight/import
+ * Import weight data from CSV
+ */
+router.post('/weight/import', controller.importWeight)
+
+/**
+ * POST /api/health/weight/import/preview
+ * Preview CSV import without saving
+ */
+router.post('/weight/import/preview', controller.previewWeightImport)
 
 /**
  * DELETE /api/health/weight/:id

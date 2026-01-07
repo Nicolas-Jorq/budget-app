@@ -17,6 +17,11 @@ import {
   healthGoalService,
   healthDashboardService,
 } from './health.service.js'
+import {
+  parseWeightCSV,
+  importWeightData,
+  getWeightProgressWithMA,
+} from '../../services/weight-import.js'
 
 // ==========================================
 // Dashboard
@@ -200,6 +205,108 @@ export async function getWeightProgress(
     const days = req.query.days ? parseInt(req.query.days as string) : 30
     const progress = await weightService.getProgress(req.userId!, days)
     res.json(progress)
+  } catch (error) {
+    next(error)
+  }
+}
+
+/**
+ * Get weight progress with moving average
+ * GET /api/health/weight/chart
+ */
+export async function getWeightChart(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const days = req.query.days ? parseInt(req.query.days as string) : 90
+    const data = await getWeightProgressWithMA(req.userId!, days)
+    res.json(data)
+  } catch (error) {
+    next(error)
+  }
+}
+
+/**
+ * Import weight data from CSV
+ * POST /api/health/weight/import
+ */
+export async function importWeight(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { csvContent, unit = 'lbs', skipDuplicates = true } = req.body
+
+    if (!csvContent || typeof csvContent !== 'string') {
+      return res.status(400).json({
+        message: 'Missing or invalid CSV content',
+        error: 'csvContent must be a non-empty string',
+      })
+    }
+
+    // Parse the CSV
+    const { rows, errors, headers } = parseWeightCSV(csvContent)
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        message: 'No valid data rows found in CSV',
+        parseErrors: errors,
+        detectedHeaders: headers,
+      })
+    }
+
+    // If there are parse errors but some valid rows, include warnings
+    const parseWarnings = errors.length > 0 ? errors : undefined
+
+    // Import the data
+    const result = await importWeightData(req.userId!, rows, {
+      unit: unit as 'kg' | 'lbs',
+      skipDuplicates,
+    })
+
+    res.status(result.success ? 200 : 207).json({
+      ...result,
+      parseWarnings,
+      detectedHeaders: headers,
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+/**
+ * Preview CSV import (parse without saving)
+ * POST /api/health/weight/import/preview
+ */
+export async function previewWeightImport(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { csvContent } = req.body
+
+    if (!csvContent || typeof csvContent !== 'string') {
+      return res.status(400).json({
+        message: 'Missing or invalid CSV content',
+      })
+    }
+
+    const { rows, errors, headers } = parseWeightCSV(csvContent)
+
+    res.json({
+      validRows: rows.length,
+      parseErrors: errors,
+      detectedHeaders: headers,
+      preview: rows.slice(0, 10).map(row => ({
+        date: row.date.toISOString().split('T')[0],
+        weight: row.weight,
+        movingAverage: row.movingAverage,
+      })),
+    })
   } catch (error) {
     next(error)
   }
