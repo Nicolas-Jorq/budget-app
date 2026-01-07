@@ -74,13 +74,45 @@ export default function MortgageCalculator({
   const calculate = async () => {
     setIsLoading(true)
     try {
+      const homePriceNum = parseFloat(homePrice)
+      const downPaymentPctNum = parseFloat(downPaymentPct)
+      const interestRateNum = parseFloat(interestRate)
+      const loanTermYearsNum = parseInt(loanTermYears, 10)
+
       const response = await api.post('/house/mortgage/calculate', {
-        homePrice: parseFloat(homePrice),
-        downPaymentPercent: parseFloat(downPaymentPct),
-        interestRate: parseFloat(interestRate),
-        loanTermYears: parseInt(loanTermYears, 10),
+        homePrice: homePriceNum,
+        downPaymentPct: downPaymentPctNum,
+        interestRate: interestRateNum,
+        loanTermYears: loanTermYearsNum,
       })
-      setResult(response.data)
+
+      // Transform backend response to match frontend MortgageCalculation type
+      const data = response.data.data
+
+      // Calculate actual principal/interest split for first payment
+      // Interest for first month = loanAmount * (annualRate / 12 / 100)
+      const monthlyRate = interestRateNum / 100 / 12
+      const firstMonthInterest = data.loanAmount * monthlyRate
+      const firstMonthPrincipal = data.monthlyPayment.principalAndInterest - firstMonthInterest
+
+      setResult({
+        homePrice: data.homePrice,
+        downPayment: data.downPayment,
+        downPaymentPercent: downPaymentPctNum,
+        loanAmount: data.loanAmount,
+        interestRate: interestRateNum,
+        loanTermYears: loanTermYearsNum,
+        monthlyPayment: data.monthlyPayment.total,
+        totalPayment: data.totalPaid,
+        totalInterest: data.totalInterest,
+        monthlyBreakdown: {
+          principal: Math.round(firstMonthPrincipal),
+          interest: Math.round(firstMonthInterest),
+          propertyTax: data.monthlyPayment.propertyTax,
+          homeInsurance: data.monthlyPayment.insurance,
+          pmi: data.monthlyPayment.pmi > 0 ? data.monthlyPayment.pmi : undefined,
+        },
+      })
     } catch (error) {
       console.error('Error calculating mortgage:', error)
     } finally {

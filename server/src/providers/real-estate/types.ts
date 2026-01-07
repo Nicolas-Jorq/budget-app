@@ -1,25 +1,28 @@
 /**
- * Real Estate Provider Interface
+ * @fileoverview Real Estate Provider Types
  *
- * Abstraction layer for real estate data APIs. Implementations can use
- * different providers (RapidAPI/Zillow, Realtor, Redfin, etc.) without
- * changing the application code.
+ * Abstract interfaces for real estate data providers.
+ * Implementations can use Zillow, Realtor, Redfin, or mock data.
  *
- * Available Providers:
- * - rapidapi_zillow: RapidAPI Zillow API (https://rapidapi.com/apimaker/api/zillow-com1)
- * - mock: Mock provider for testing (no API key required)
+ * @module providers/real-estate/types
  */
 
+/**
+ * Parameters for searching properties
+ */
 export interface PropertySearchParams {
-  location: string        // City, State or ZIP code
+  location: string           // City, State or ZIP code
   minPrice?: number
   maxPrice?: number
   bedrooms?: number
   bathrooms?: number
-  propertyType?: PropertyType
-  limit?: number          // Max results to return (default: 20)
+  propertyType?: PropertyType | string  // Can be PropertyType or raw string
+  limit?: number
 }
 
+/**
+ * Property types supported by the system
+ */
 export type PropertyType =
   | 'single_family'
   | 'condo'
@@ -27,10 +30,12 @@ export type PropertyType =
   | 'multi_family'
   | 'apartment'
   | 'land'
-  | 'other'
 
+/**
+ * A property listing from search results
+ */
 export interface PropertyListing {
-  id: string              // Provider-specific property ID
+  id: string                 // Provider-specific ID (e.g., zpid for Zillow)
   address: string
   city: string
   state: string
@@ -45,95 +50,72 @@ export interface PropertyListing {
   listingUrl?: string
   latitude?: number
   longitude?: number
-  lotSize?: number        // Square feet
-  description?: string
   daysOnMarket?: number
   pricePerSqft?: number
 }
 
+/**
+ * Home valuation estimate
+ */
 export interface HomeValuation {
   address: string
-  zestimate: number       // Estimated value
-  rentZestimate?: number  // Estimated monthly rent
+  estimate: number
+  rentEstimate?: number
   valueRange: {
     low: number
     high: number
   }
-  lastUpdated: string     // ISO date string
-  taxAssessment?: number
-  yearBuilt?: number
-  sqft?: number
-}
-
-export interface MortgageCalculation {
-  homePrice: number
-  downPayment: number
-  downPaymentPercent: number
-  loanAmount: number
-  interestRate: number
-  loanTermYears: number
-  monthlyPayment: number
-  monthlyBreakdown: {
-    principal: number
-    interest: number
-    propertyTax: number
-    homeInsurance: number
-    pmi?: number          // Private Mortgage Insurance (if down payment < 20%)
-  }
-  totalPayment: number    // Total paid over loan term
-  totalInterest: number   // Total interest paid
-}
-
-export interface MortgageParams {
-  homePrice: number
-  downPaymentPercent: number
-  interestRate: number
-  loanTermYears: number
-  propertyTaxRate?: number    // Annual rate as decimal (default: 0.0125 = 1.25%)
-  homeInsuranceRate?: number  // Annual rate as decimal (default: 0.0035 = 0.35%)
-  pmiRate?: number            // Annual rate as decimal (default: 0.005 = 0.5%)
+  lastUpdated: string
+  confidence?: 'high' | 'medium' | 'low'
 }
 
 /**
- * Real Estate Provider Interface
- *
- * All real estate data providers must implement this interface.
+ * Property details with additional information
+ */
+export interface PropertyDetails extends PropertyListing {
+  description?: string
+  lotSize?: number
+  parking?: number
+  features?: string[]
+  taxAssessment?: number
+  hoaFee?: number
+  images?: string[]
+  priceHistory?: PriceHistoryEntry[]
+}
+
+/**
+ * Price history entry
+ */
+export interface PriceHistoryEntry {
+  date: string
+  price: number
+  event: 'listed' | 'sold' | 'price_change' | 'pending'
+}
+
+/**
+ * Abstract interface for real estate data providers
  */
 export interface RealEstateProvider {
-  /** Provider name for logging/debugging */
-  name: string
+  /** Provider name for logging/display */
+  readonly name: string
 
   /**
-   * Search for properties matching the given criteria
-   * @param params Search parameters
-   * @returns Array of matching property listings
+   * Search for properties matching criteria
    */
   searchProperties(params: PropertySearchParams): Promise<PropertyListing[]>
 
   /**
    * Get detailed information about a specific property
-   * @param propertyId Provider-specific property ID
-   * @returns Property details or null if not found
    */
-  getPropertyDetails(propertyId: string): Promise<PropertyListing | null>
+  getPropertyDetails(propertyId: string): Promise<PropertyDetails | null>
 
   /**
    * Get home valuation estimate for an address
-   * @param address Full address string
-   * @returns Valuation data or null if not found
    */
   getHomeValuation(address: string): Promise<HomeValuation | null>
 
   /**
-   * Calculate mortgage payments
-   * @param params Mortgage calculation parameters
-   * @returns Detailed mortgage breakdown
-   */
-  calculateMortgage(params: MortgageParams): MortgageCalculation
-
-  /**
-   * Check if the provider is properly configured and available
-   * @returns true if provider can make API calls
+   * Check if provider is available (API key configured, etc.)
    */
   isAvailable(): Promise<boolean>
 }
