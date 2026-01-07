@@ -19,6 +19,7 @@ import { APP_CONFIG } from '../config/app.js'
 
 // Auth routes (module-agnostic)
 import authRoutes from './auth.js'
+import notificationRoutes from './notifications.js'
 
 // Module system
 import { modulesRoutes } from '../modules/core/index.js'
@@ -44,6 +45,7 @@ router.get('/', (_req, res) => {
     endpoints: {
       auth: '/api/auth',
       modules: '/api/modules',
+      notifications: '/api/notifications',
       finance: {
         root: '/api/finance',
         budgets: '/api/finance/budgets',
@@ -69,6 +71,7 @@ router.get('/', (_req, res) => {
 
 router.use('/auth', authRoutes)
 router.use('/modules', modulesRoutes)
+router.use('/notifications', notificationRoutes)
 
 // ==========================================
 // Module Routes (Namespaced)

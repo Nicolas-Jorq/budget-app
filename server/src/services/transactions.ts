@@ -19,6 +19,7 @@ import { prisma } from '../lib/prisma.js'
 import { Transaction } from '@prisma/client'
 import { createLogger } from '../lib/logger.js'
 import { AppError } from '../utils/errors.js'
+import { checkBudgetAlerts } from './budget-alerts.js'
 
 const logger = createLogger('transaction-service')
 
@@ -228,12 +229,15 @@ export const transactionService = {
         increment: data.amount,
       })
 
-      await prisma.budget.update({
+      const updatedBudget = await prisma.budget.update({
         where: { id: data.budgetId },
         data: {
           spent: { increment: data.amount },
         },
       })
+
+      // Check for budget alerts after updating spent amount
+      await checkBudgetAlerts(updatedBudget)
     }
 
     logger.info('Transaction created', { transactionId: transaction.id, userId })
@@ -321,12 +325,15 @@ export const transactionService = {
         increment: newAmount,
       })
 
-      await prisma.budget.update({
+      const updatedBudget = await prisma.budget.update({
         where: { id: newBudgetId },
         data: {
           spent: { increment: newAmount },
         },
       })
+
+      // Check for budget alerts after updating spent amount
+      await checkBudgetAlerts(updatedBudget)
     }
 
     logger.info('Transaction updated', { transactionId: id, userId })

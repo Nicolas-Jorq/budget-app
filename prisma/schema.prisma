@@ -22,6 +22,7 @@ model User {
   bankDocuments         BankDocument[]
   recurringTransactions RecurringTransaction[]
   categories            Category[]
+  notifications         Notification[]
   // Module system relations
   modules               UserModule[]
   obsidianSync          ObsidianSync?
@@ -107,6 +108,36 @@ model Category {
 
   @@unique([userId, name])
   @@map("categories")
+}
+
+// ==========================================
+// Notification System
+// ==========================================
+
+enum NotificationType {
+  BUDGET_WARNING      // 80% of budget spent
+  BUDGET_CRITICAL     // 90% of budget spent
+  BUDGET_EXCEEDED     // Over 100% of budget
+  GOAL_MILESTONE      // Savings goal milestone reached
+  RECURRING_DUE       // Recurring transaction coming due
+  SYSTEM              // System notifications
+}
+
+/// User notifications for alerts and updates
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  metadata    Json?            // Additional data (budgetId, goalId, etc.)
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model Budget {
