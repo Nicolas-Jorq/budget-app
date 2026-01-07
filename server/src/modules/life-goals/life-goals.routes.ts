@@ -9,12 +9,14 @@
 
 import { Router } from 'express'
 import { authenticate } from '../../middleware/auth.js'
+import { requireModule } from '../../middleware/moduleGuard.js'
 import * as controller from './life-goals.controller.js'
 
 const router = Router()
 
-// All life goals routes require authentication
+// All life goals routes require authentication and LIFE_GOALS module
 router.use(authenticate)
+router.use(requireModule('LIFE_GOALS'))
 
 // ==========================================
 // Dashboard

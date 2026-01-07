@@ -1,5 +1,5 @@
 /**
- * @fileoverview Categories Routes
+ * @fileoverview Categories Routes with validation.
  *
  * API routes for user-configurable category management.
  *
@@ -15,8 +15,10 @@ import {
   deleteCategory,
   resetCategories,
   updateSortOrder,
-} from '../controllers/categories'
+} from '../controllers/categories.js'
 import { authenticate } from '../middleware/auth.js'
+import { validate, validateBody, validateParams } from '../middleware/validate.js'
+import { createCategorySchema, updateCategorySchema, idParamSchema } from '../schemas/index.js'
 
 const router = Router()
 
@@ -46,24 +48,24 @@ router.put('/sort', updateSortOrder)
  * GET /api/categories/:id
  * Get a single category by ID.
  */
-router.get('/:id', getCategoryById)
+router.get('/:id', validateParams(idParamSchema), getCategoryById)
 
 /**
  * POST /api/categories
  * Create a new category.
  */
-router.post('/', createCategory)
+router.post('/', validateBody(createCategorySchema), createCategory)
 
 /**
  * PUT /api/categories/:id
  * Update a category.
  */
-router.put('/:id', updateCategory)
+router.put('/:id', validate({ params: idParamSchema, body: updateCategorySchema }), updateCategory)
 
 /**
  * DELETE /api/categories/:id
  * Delete a category.
  */
-router.delete('/:id', deleteCategory)
+router.delete('/:id', validateParams(idParamSchema), deleteCategory)
 
 export default router

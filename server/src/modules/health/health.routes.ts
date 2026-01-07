@@ -9,12 +9,14 @@
 
 import { Router } from 'express'
 import { authenticate } from '../../middleware/auth.js'
+import { requireModule } from '../../middleware/moduleGuard.js'
 import * as controller from './health.controller.js'
 
 const router = Router()
 
-// All health routes require authentication
+// All health routes require authentication and HEALTH module
 router.use(authenticate)
+router.use(requireModule('HEALTH'))
 
 // ==========================================
 // Dashboard

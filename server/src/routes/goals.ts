@@ -1,8 +1,20 @@
+/**
+ * @fileoverview Goals routes with validation.
+ * @module routes/goals
+ */
+
 import { Router } from 'express'
 import { goalsController } from '../controllers/goals.js'
 import { babyGoalsController } from '../controllers/baby-goals.js'
 import { houseController } from '../controllers/house.js'
 import { authenticate } from '../middleware/auth.js'
+import { validate, validateBody, validateParams } from '../middleware/validate.js'
+import {
+  createGoalSchema,
+  updateGoalSchema,
+  createContributionSchema,
+  idParamSchema,
+} from '../schemas/index.js'
 
 const router = Router()
 
@@ -11,14 +23,14 @@ router.use(authenticate)
 // Goals CRUD
 router.get('/', goalsController.getAll)
 router.get('/summary', goalsController.getSummary)
-router.get('/:id', goalsController.getById)
-router.post('/', goalsController.create)
-router.put('/:id', goalsController.update)
-router.delete('/:id', goalsController.delete)
+router.get('/:id', validateParams(idParamSchema), goalsController.getById)
+router.post('/', validateBody(createGoalSchema), goalsController.create)
+router.put('/:id', validate({ params: idParamSchema, body: updateGoalSchema }), goalsController.update)
+router.delete('/:id', validateParams(idParamSchema), goalsController.delete)
 
 // Contributions
-router.get('/:id/contributions', goalsController.getContributions)
-router.post('/:id/contributions', goalsController.addContribution)
+router.get('/:id/contributions', validateParams(idParamSchema), goalsController.getContributions)
+router.post('/:id/contributions', validate({ params: idParamSchema, body: createContributionSchema }), goalsController.addContribution)
 router.delete('/:id/contributions/:contributionId', goalsController.removeContribution)
 
 // Baby Goal Milestones
