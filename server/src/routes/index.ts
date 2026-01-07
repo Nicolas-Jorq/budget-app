@@ -20,6 +20,7 @@ import { APP_CONFIG } from '../config/app.js'
 // Auth routes (module-agnostic)
 import authRoutes from './auth.js'
 import notificationRoutes from './notifications.js'
+import unifiedDashboardRoutes from './unified-dashboard.js'
 
 // Module system
 import { modulesRoutes } from '../modules/core/index.js'
@@ -46,6 +47,11 @@ router.get('/', (_req, res) => {
       auth: '/api/auth',
       modules: '/api/modules',
       notifications: '/api/notifications',
+      dashboard: {
+        unified: '/api/dashboard/unified',
+        quickStats: '/api/dashboard/quick-stats',
+        modules: '/api/dashboard/modules',
+      },
       finance: {
         root: '/api/finance',
         budgets: '/api/finance/budgets',
@@ -72,6 +78,7 @@ router.get('/', (_req, res) => {
 router.use('/auth', authRoutes)
 router.use('/modules', modulesRoutes)
 router.use('/notifications', notificationRoutes)
+router.use('/dashboard', unifiedDashboardRoutes)
 
 // ==========================================
 // Module Routes (Namespaced)
