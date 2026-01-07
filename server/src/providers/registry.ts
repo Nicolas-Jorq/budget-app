@@ -1,191 +1,88 @@
 /**
- * Provider Registry
+ * @fileoverview Provider Registry & Factory
  *
- * Central configuration for all external service providers.
- * This file documents all available providers, their endpoints, and required environment variables.
+ * Centralized configuration for all external service providers.
+ * Factory functions to create provider instances based on environment.
  *
- * IMPORTANT: Never hardcode API keys. All secrets must come from environment variables.
+ * @module providers/registry
  */
 
-import { RealEstateProvider } from './real-estate/types.js'
-import { LLMProvider } from './llm/types.js'
+import type { RealEstateProvider } from './real-estate/types.js'
+import type { LLMProvider } from './llm/types.js'
 
 /**
- * Real Estate Provider Configuration
- *
- * Available providers and their setup requirements:
+ * Provider configuration metadata
  */
-export const REAL_ESTATE_PROVIDERS = {
-  /**
-   * RapidAPI Zillow Provider
-   *
-   * Setup:
-   * 1. Create account at https://rapidapi.com
-   * 2. Subscribe to "Zillow" API: https://rapidapi.com/apimaker/api/zillow-com1
-   * 3. Copy your RapidAPI key from the dashboard
-   * 4. Add to .env: RAPIDAPI_KEY=your_key_here
-   *
-   * Endpoints:
-   * - Base URL: https://zillow-com1.p.rapidapi.com
-   * - GET /propertyExtendedSearch - Search properties by location
-   * - GET /property - Get property details by zpid
-   * - GET /zestimate - Get home valuation by zpid
-   *
-   * Headers Required:
-   * - X-RapidAPI-Key: ${RAPIDAPI_KEY}
-   * - X-RapidAPI-Host: zillow-com1.p.rapidapi.com
-   *
-   * Rate Limits (Free Tier):
-   * - 100 requests/month
-   */
-  rapidapi_zillow: {
-    name: 'RapidAPI Zillow',
-    envKeys: ['RAPIDAPI_KEY'],
-    baseUrl: 'https://zillow-com1.p.rapidapi.com',
-    host: 'zillow-com1.p.rapidapi.com',
-    freeLimit: 100,
-    endpoints: {
-      search: '/propertyExtendedSearch',
-      property: '/property',
-      zestimate: '/zestimate',
+export interface ProviderConfig {
+  name: string
+  envKeys: readonly string[]
+  baseUrl?: string
+  defaultModel?: string
+  rateLimit?: {
+    requests: number
+    period: 'minute' | 'hour' | 'day' | 'month'
+  }
+}
+
+/**
+ * Registry of all available providers and their configuration
+ */
+export const PROVIDER_REGISTRY = {
+  realEstate: {
+    rapidapi_zillow: {
+      name: 'RapidAPI Zillow',
+      envKeys: ['RAPIDAPI_KEY'],
+      baseUrl: 'https://zillow-com1.p.rapidapi.com',
+      rateLimit: { requests: 100, period: 'month' as const },
+    },
+    simplyrets: {
+      name: 'SimplyRETS',
+      envKeys: ['SIMPLYRETS_API_KEY', 'SIMPLYRETS_API_SECRET'],
+      baseUrl: 'https://api.simplyrets.com',
+      rateLimit: { requests: 1000, period: 'day' as const },
+    },
+    mock: {
+      name: 'Mock Provider',
+      envKeys: [],
+      baseUrl: undefined,
+      rateLimit: undefined,
     },
   },
-
-  /**
-   * SimplyRETS Demo Provider (Recommended)
-   *
-   * NO API KEY REQUIRED! Uses demo credentials.
-   * Real MLS-style property data for testing.
-   *
-   * Setup:
-   * Just set REAL_ESTATE_PROVIDER=simplyrets in .env
-   *
-   * Endpoints:
-   * - Base URL: https://api.simplyrets.com
-   * - GET /properties - Search properties
-   * - GET /properties/{mlsId} - Get property details
-   *
-   * Auth: Basic auth with demo:demo credentials (built-in)
-   *
-   * Rate Limits: Unlimited for demo data
-   */
-  simplyrets: {
-    name: 'SimplyRETS Demo',
-    envKeys: [], // No API key needed!
-    baseUrl: 'https://api.simplyrets.com',
-    freeLimit: Infinity,
-    endpoints: {
-      search: '/properties',
-      property: '/properties/{mlsId}',
+  llm: {
+    openai: {
+      name: 'OpenAI',
+      envKeys: ['OPENAI_API_KEY'],
+      baseUrl: 'https://api.openai.com/v1',
+      defaultModel: 'gpt-4o-mini',
     },
-  },
-
-  /**
-   * Mock Provider (for testing)
-   *
-   * No setup required. Returns fake data.
-   * Use this for development and testing.
-   */
-  mock: {
-    name: 'Mock Provider',
-    envKeys: [],
-    baseUrl: null,
-    freeLimit: Infinity,
+    anthropic: {
+      name: 'Anthropic',
+      envKeys: ['ANTHROPIC_API_KEY'],
+      baseUrl: 'https://api.anthropic.com/v1',
+      defaultModel: 'claude-3-haiku-20240307',
+    },
+    ollama: {
+      name: 'Ollama (Local)',
+      envKeys: [],
+      baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
+      defaultModel: process.env.OLLAMA_MODEL || 'llama3.2',
+    },
+    mock: {
+      name: 'Mock Provider',
+      envKeys: [],
+      baseUrl: undefined,
+      defaultModel: 'mock-model',
+    },
   },
 } as const
-
-/**
- * LLM Provider Configuration
- *
- * Available providers and their setup requirements:
- */
-export const LLM_PROVIDERS = {
-  /**
-   * OpenAI Provider
-   *
-   * Setup:
-   * 1. Create account at https://platform.openai.com
-   * 2. Generate API key: https://platform.openai.com/api-keys
-   * 3. Add to .env: OPENAI_API_KEY=your_key_here
-   *
-   * Endpoint:
-   * - Base URL: https://api.openai.com/v1
-   * - POST /chat/completions
-   *
-   * Headers Required:
-   * - Authorization: Bearer ${OPENAI_API_KEY}
-   * - Content-Type: application/json
-   *
-   * Recommended Model: gpt-4o-mini (cost-effective)
-   */
-  openai: {
-    name: 'OpenAI',
-    envKeys: ['OPENAI_API_KEY'],
-    baseUrl: 'https://api.openai.com/v1',
-    endpoints: {
-      chat: '/chat/completions',
-    },
-    defaultModel: 'gpt-4o-mini',
-    pricing: '$0.15/1M input tokens, $0.60/1M output tokens',
-  },
-
-  /**
-   * Ollama Provider (Local)
-   *
-   * Setup:
-   * 1. Install Ollama: https://ollama.ai
-   * 2. Pull a model: ollama pull llama3.2
-   * 3. Start Ollama server (usually runs automatically)
-   * 4. Optionally set in .env: OLLAMA_BASE_URL=http://localhost:11434
-   *
-   * Endpoint:
-   * - Base URL: http://localhost:11434/api
-   * - POST /chat
-   *
-   * No authentication required.
-   *
-   * Recommended Models:
-   * - llama3.2 (8B params, general purpose)
-   * - mistral (7B params, good for analysis)
-   */
-  ollama: {
-    name: 'Ollama (Local)',
-    envKeys: [],
-    baseUrl: 'http://localhost:11434',
-    endpoints: {
-      chat: '/api/chat',
-      tags: '/api/tags', // List available models
-    },
-    defaultModel: 'llama3.2',
-    pricing: 'Free (runs locally)',
-  },
-
-  /**
-   * Mock Provider (for testing)
-   *
-   * No setup required. Returns canned responses.
-   * Use this for development and testing.
-   */
-  mock: {
-    name: 'Mock Provider',
-    envKeys: [],
-    baseUrl: null,
-  },
-} as const
-
-/**
- * Provider Types
- */
-export type RealEstateProviderType = keyof typeof REAL_ESTATE_PROVIDERS
-export type LLMProviderType = keyof typeof LLM_PROVIDERS
 
 /**
  * Get the configured real estate provider type from environment
  */
-export function getRealEstateProviderType(): RealEstateProviderType {
+export function getRealEstateProviderType(): keyof typeof PROVIDER_REGISTRY.realEstate {
   const provider = process.env.REAL_ESTATE_PROVIDER || 'mock'
-  if (provider in REAL_ESTATE_PROVIDERS) {
-    return provider as RealEstateProviderType
+  if (provider in PROVIDER_REGISTRY.realEstate) {
+    return provider as keyof typeof PROVIDER_REGISTRY.realEstate
   }
   console.warn(`Unknown real estate provider: ${provider}, falling back to mock`)
   return 'mock'
@@ -194,10 +91,10 @@ export function getRealEstateProviderType(): RealEstateProviderType {
 /**
  * Get the configured LLM provider type from environment
  */
-export function getLLMProviderType(): LLMProviderType {
+export function getLLMProviderType(): keyof typeof PROVIDER_REGISTRY.llm {
   const provider = process.env.LLM_PROVIDER || 'mock'
-  if (provider in LLM_PROVIDERS) {
-    return provider as LLMProviderType
+  if (provider in PROVIDER_REGISTRY.llm) {
+    return provider as keyof typeof PROVIDER_REGISTRY.llm
   }
   console.warn(`Unknown LLM provider: ${provider}, falling back to mock`)
   return 'mock'
@@ -206,125 +103,146 @@ export function getLLMProviderType(): LLMProviderType {
 /**
  * Check if required environment variables are set for a provider
  */
-export function checkProviderEnv(providerConfig: { envKeys: readonly string[] }): {
-  valid: boolean
-  missing: string[]
-} {
-  const missing = providerConfig.envKeys.filter((key) => !process.env[key])
+export function checkProviderEnv(config: ProviderConfig): { valid: boolean; missing: string[] } {
+  const missing = config.envKeys.filter(key => !process.env[key])
   return {
     valid: missing.length === 0,
     missing,
   }
 }
 
+// Lazy-loaded provider instances (singleton pattern)
+let realEstateProviderInstance: RealEstateProvider | null = null
+let llmProviderInstance: LLMProvider | null = null
+
 /**
- * Factory function to create real estate provider
- * Lazy-loaded to avoid circular dependencies
+ * Create or get the real estate provider instance
  */
 export async function createRealEstateProvider(): Promise<RealEstateProvider> {
-  const providerType = getRealEstateProviderType()
+  if (realEstateProviderInstance) {
+    return realEstateProviderInstance
+  }
 
+  const providerType = getRealEstateProviderType()
+  const config = PROVIDER_REGISTRY.realEstate[providerType]
+
+  // Check environment variables
+  const envCheck = checkProviderEnv(config)
+  if (!envCheck.valid && providerType !== 'mock') {
+    console.warn(
+      `Missing env vars for ${config.name}: ${envCheck.missing.join(', ')}. Falling back to mock provider.`
+    )
+    const { MockRealEstateProvider } = await import('./real-estate/mock.js')
+    realEstateProviderInstance = new MockRealEstateProvider()
+    return realEstateProviderInstance
+  }
+
+  // Import and instantiate the appropriate provider
   switch (providerType) {
     case 'rapidapi_zillow': {
       const { RapidAPIZillowProvider } = await import('./real-estate/rapidapi-zillow.js')
-      return new RapidAPIZillowProvider()
+      realEstateProviderInstance = new RapidAPIZillowProvider()
+      break
     }
     case 'simplyrets': {
       const { SimplyRetsProvider } = await import('./real-estate/simplyrets.js')
-      return new SimplyRetsProvider()
+      realEstateProviderInstance = new SimplyRetsProvider()
+      break
     }
     case 'mock':
     default: {
       const { MockRealEstateProvider } = await import('./real-estate/mock.js')
-      return new MockRealEstateProvider()
+      realEstateProviderInstance = new MockRealEstateProvider()
+      break
     }
   }
+
+  console.log(`Real estate provider initialized: ${realEstateProviderInstance!.name}`)
+  return realEstateProviderInstance!
 }
 
 /**
- * Factory function to create LLM provider
- * Lazy-loaded to avoid circular dependencies
+ * Create or get the LLM provider instance
  */
 export async function createLLMProvider(): Promise<LLMProvider> {
-  const providerType = getLLMProviderType()
+  if (llmProviderInstance) {
+    return llmProviderInstance
+  }
 
+  const providerType = getLLMProviderType()
+  const config = PROVIDER_REGISTRY.llm[providerType]
+
+  // Check environment variables
+  const envCheck = checkProviderEnv(config)
+  if (!envCheck.valid && providerType !== 'mock' && providerType !== 'ollama') {
+    console.warn(
+      `Missing env vars for ${config.name}: ${envCheck.missing.join(', ')}. Falling back to mock provider.`
+    )
+    const { MockLLMProvider } = await import('./llm/mock.js')
+    llmProviderInstance = new MockLLMProvider()
+    return llmProviderInstance
+  }
+
+  // Import and instantiate the appropriate provider
   switch (providerType) {
     case 'openai': {
       const { OpenAIProvider } = await import('./llm/openai.js')
-      return new OpenAIProvider()
+      llmProviderInstance = new OpenAIProvider()
+      break
+    }
+    case 'anthropic': {
+      const { AnthropicProvider } = await import('./llm/anthropic.js')
+      llmProviderInstance = new AnthropicProvider()
+      break
     }
     case 'ollama': {
       const { OllamaProvider } = await import('./llm/ollama.js')
-      return new OllamaProvider()
+      llmProviderInstance = new OllamaProvider()
+      break
     }
     case 'mock':
     default: {
       const { MockLLMProvider } = await import('./llm/mock.js')
-      return new MockLLMProvider()
+      llmProviderInstance = new MockLLMProvider()
+      break
     }
   }
+
+  console.log(`LLM provider initialized: ${llmProviderInstance!.name}`)
+  return llmProviderInstance!
 }
 
 /**
- * Get provider status for debugging/admin purposes
+ * Reset provider instances (useful for testing)
  */
-export async function getProviderStatus(): Promise<{
-  realEstate: {
-    type: RealEstateProviderType
-    name: string
-    available: boolean
-    missingEnv: string[]
-  }
-  llm: {
-    type: LLMProviderType
-    name: string
-    available: boolean
-    missingEnv: string[]
-  }
+export function resetProviders(): void {
+  realEstateProviderInstance = null
+  llmProviderInstance = null
+}
+
+/**
+ * Get status of all configured providers
+ */
+export async function getProvidersStatus(): Promise<{
+  realEstate: { provider: string; available: boolean; config: ProviderConfig }
+  llm: { provider: string; available: boolean; config: ProviderConfig }
 }> {
   const realEstateType = getRealEstateProviderType()
   const llmType = getLLMProviderType()
 
-  const realEstateConfig = REAL_ESTATE_PROVIDERS[realEstateType]
-  const llmConfig = LLM_PROVIDERS[llmType]
-
-  const realEstateEnvCheck = checkProviderEnv(realEstateConfig)
-  const llmEnvCheck = checkProviderEnv(llmConfig)
-
-  let realEstateAvailable = realEstateEnvCheck.valid
-  let llmAvailable = llmEnvCheck.valid
-
-  // For providers that don't require env vars, check actual availability
-  if (realEstateEnvCheck.valid) {
-    try {
-      const provider = await createRealEstateProvider()
-      realEstateAvailable = await provider.isAvailable()
-    } catch {
-      realEstateAvailable = false
-    }
-  }
-
-  if (llmEnvCheck.valid) {
-    try {
-      const provider = await createLLMProvider()
-      llmAvailable = await provider.isAvailable()
-    } catch {
-      llmAvailable = false
-    }
-  }
+  const realEstateProvider = await createRealEstateProvider()
+  const llmProvider = await createLLMProvider()
 
   return {
     realEstate: {
-      type: realEstateType,
-      name: realEstateConfig.name,
-      available: realEstateAvailable,
-      missingEnv: realEstateEnvCheck.missing,
+      provider: realEstateType,
+      available: await realEstateProvider.isAvailable(),
+      config: PROVIDER_REGISTRY.realEstate[realEstateType],
     },
     llm: {
-      type: llmType,
-      name: llmConfig.name,
-      available: llmAvailable,
-      missingEnv: llmEnvCheck.missing,
+      provider: llmType,
+      available: await llmProvider.isAvailable(),
+      config: PROVIDER_REGISTRY.llm[llmType],
     },
   }
 }

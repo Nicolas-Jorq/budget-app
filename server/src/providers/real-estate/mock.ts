@@ -1,24 +1,27 @@
 /**
- * Mock Real Estate Provider
+ * @fileoverview Mock Real Estate Provider
  *
- * Returns fake data for testing and development.
- * No API key required.
+ * Provides fake real estate data for testing without API keys.
+ * Returns realistic-looking data based on search parameters.
+ *
+ * @module providers/real-estate/mock
  */
 
-import {
+import type {
   RealEstateProvider,
   PropertySearchParams,
   PropertyListing,
+  PropertyDetails,
   HomeValuation,
-  MortgageParams,
-  MortgageCalculation,
 } from './types.js'
 
-// Sample mock properties for testing
+/**
+ * Sample property data for mock responses
+ */
 const MOCK_PROPERTIES: PropertyListing[] = [
   {
     id: 'mock-1',
-    address: '123 Main Street',
+    address: '123 Oak Street',
     city: 'Austin',
     state: 'TX',
     zipCode: '78701',
@@ -26,285 +29,211 @@ const MOCK_PROPERTIES: PropertyListing[] = [
     bedrooms: 3,
     bathrooms: 2,
     sqft: 1850,
-    yearBuilt: 2018,
+    yearBuilt: 2015,
     propertyType: 'single_family',
     imageUrl: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
     listingUrl: 'https://example.com/property/mock-1',
     latitude: 30.2672,
     longitude: -97.7431,
-    lotSize: 6500,
     daysOnMarket: 14,
     pricePerSqft: 243,
   },
   {
     id: 'mock-2',
-    address: '456 Oak Avenue',
-    city: 'Austin',
-    state: 'TX',
-    zipCode: '78704',
-    price: 625000,
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2400,
-    yearBuilt: 2015,
-    propertyType: 'single_family',
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
-    listingUrl: 'https://example.com/property/mock-2',
-    latitude: 30.2449,
-    longitude: -97.7544,
-    lotSize: 8000,
-    daysOnMarket: 7,
-    pricePerSqft: 260,
-  },
-  {
-    id: 'mock-3',
-    address: '789 Downtown Lofts #402',
+    address: '456 Maple Avenue',
     city: 'Austin',
     state: 'TX',
     zipCode: '78702',
-    price: 385000,
+    price: 525000,
+    bedrooms: 4,
+    bathrooms: 2.5,
+    sqft: 2200,
+    yearBuilt: 2018,
+    propertyType: 'single_family',
+    imageUrl: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+    listingUrl: 'https://example.com/property/mock-2',
+    latitude: 30.2622,
+    longitude: -97.7241,
+    daysOnMarket: 7,
+    pricePerSqft: 239,
+  },
+  {
+    id: 'mock-3',
+    address: '789 Downtown Lofts #405',
+    city: 'Austin',
+    state: 'TX',
+    zipCode: '78701',
+    price: 375000,
     bedrooms: 2,
     bathrooms: 2,
     sqft: 1200,
     yearBuilt: 2020,
     propertyType: 'condo',
-    imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
     listingUrl: 'https://example.com/property/mock-3',
-    latitude: 30.2627,
-    longitude: -97.7251,
-    lotSize: 0,
+    latitude: 30.2700,
+    longitude: -97.7400,
     daysOnMarket: 21,
-    pricePerSqft: 320,
+    pricePerSqft: 313,
   },
   {
     id: 'mock-4',
-    address: '101 Suburban Drive',
+    address: '321 Elm Court',
     city: 'Round Rock',
     state: 'TX',
     zipCode: '78664',
-    price: 525000,
-    bedrooms: 4,
-    bathrooms: 2.5,
-    sqft: 2800,
-    yearBuilt: 2019,
-    propertyType: 'single_family',
+    price: 385000,
+    bedrooms: 3,
+    bathrooms: 2,
+    sqft: 1650,
+    yearBuilt: 2012,
+    propertyType: 'townhouse',
     imageUrl: 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800',
     listingUrl: 'https://example.com/property/mock-4',
     latitude: 30.5083,
     longitude: -97.6789,
-    lotSize: 10000,
-    daysOnMarket: 3,
-    pricePerSqft: 187,
+    daysOnMarket: 30,
+    pricePerSqft: 233,
   },
   {
     id: 'mock-5',
-    address: '222 Lakeside Terrace',
-    city: 'Lakeway',
+    address: '555 Luxury Lane',
+    city: 'Austin',
     state: 'TX',
-    zipCode: '78734',
-    price: 875000,
+    zipCode: '78703',
+    price: 850000,
     bedrooms: 5,
     bathrooms: 4,
-    sqft: 3600,
+    sqft: 3500,
     yearBuilt: 2021,
     propertyType: 'single_family',
-    imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800',
     listingUrl: 'https://example.com/property/mock-5',
-    latitude: 30.3628,
-    longitude: -97.9944,
-    lotSize: 15000,
-    daysOnMarket: 30,
+    latitude: 30.2950,
+    longitude: -97.7650,
+    daysOnMarket: 3,
     pricePerSqft: 243,
-  },
-  {
-    id: 'mock-6',
-    address: '333 Historic District Lane',
-    city: 'Georgetown',
-    state: 'TX',
-    zipCode: '78626',
-    price: 395000,
-    bedrooms: 3,
-    bathrooms: 2,
-    sqft: 1650,
-    yearBuilt: 1995,
-    propertyType: 'townhouse',
-    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800',
-    listingUrl: 'https://example.com/property/mock-6',
-    latitude: 30.6333,
-    longitude: -97.6778,
-    lotSize: 3000,
-    daysOnMarket: 45,
-    pricePerSqft: 239,
   },
 ]
 
+/**
+ * Generate a random variation of a number
+ */
+function randomVariation(base: number, percentage: number): number {
+  const variation = base * (percentage / 100)
+  return Math.round(base + (Math.random() * variation * 2 - variation))
+}
+
+/**
+ * Mock implementation of RealEstateProvider
+ */
 export class MockRealEstateProvider implements RealEstateProvider {
-  name = 'Mock Provider'
+  readonly name = 'Mock Provider'
 
   async searchProperties(params: PropertySearchParams): Promise<PropertyListing[]> {
     // Simulate network delay
-    await this.simulateDelay()
+    await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200))
 
     let results = [...MOCK_PROPERTIES]
 
-    // Filter by location (simple string match)
-    if (params.location) {
-      const locationLower = params.location.toLowerCase()
-      results = results.filter(
-        (p) =>
-          p.city.toLowerCase().includes(locationLower) ||
-          p.state.toLowerCase().includes(locationLower) ||
-          p.zipCode.includes(params.location)
-      )
-    }
-
     // Filter by price range
     if (params.minPrice) {
-      results = results.filter((p) => p.price >= params.minPrice!)
+      results = results.filter(p => p.price >= params.minPrice!)
     }
     if (params.maxPrice) {
-      results = results.filter((p) => p.price <= params.maxPrice!)
+      results = results.filter(p => p.price <= params.maxPrice!)
     }
 
     // Filter by bedrooms
     if (params.bedrooms) {
-      results = results.filter((p) => p.bedrooms >= params.bedrooms!)
+      results = results.filter(p => p.bedrooms >= params.bedrooms!)
     }
 
     // Filter by bathrooms
     if (params.bathrooms) {
-      results = results.filter((p) => p.bathrooms >= params.bathrooms!)
+      results = results.filter(p => p.bathrooms >= params.bathrooms!)
     }
 
     // Filter by property type
     if (params.propertyType) {
-      results = results.filter((p) => p.propertyType === params.propertyType)
+      results = results.filter(p => p.propertyType === params.propertyType)
     }
 
-    // Limit results
-    const limit = params.limit || 20
-    return results.slice(0, limit)
+    // Apply limit
+    if (params.limit && params.limit < results.length) {
+      results = results.slice(0, params.limit)
+    }
+
+    // Add some variation to make it feel more realistic
+    return results.map(p => ({
+      ...p,
+      price: randomVariation(p.price, 5),
+      daysOnMarket: Math.max(1, randomVariation(p.daysOnMarket || 14, 30)),
+    }))
   }
 
-  async getPropertyDetails(propertyId: string): Promise<PropertyListing | null> {
-    await this.simulateDelay()
+  async getPropertyDetails(propertyId: string): Promise<PropertyDetails | null> {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 150))
 
-    const property = MOCK_PROPERTIES.find((p) => p.id === propertyId)
-    if (!property) return null
-
-    // Return with additional details
-    return {
-      ...property,
-      description: `Beautiful ${property.bedrooms} bedroom, ${property.bathrooms} bathroom ${property.propertyType.replace('_', ' ')} in ${property.city}. Built in ${property.yearBuilt}, this ${property.sqft} sq ft home features modern amenities and a great location. This is mock data for testing purposes.`,
+    const property = MOCK_PROPERTIES.find(p => p.id === propertyId)
+    if (!property) {
+      return null
     }
+
+    // Add detailed information
+    const details: PropertyDetails = {
+      ...property,
+      description: `Beautiful ${property.bedrooms} bedroom, ${property.bathrooms} bathroom ${property.propertyType.replace('_', ' ')} in ${property.city}. This stunning property features modern amenities, updated appliances, and a great location near shopping, dining, and entertainment.`,
+      lotSize: property.propertyType === 'condo' ? undefined : randomVariation(8000, 20),
+      parking: property.propertyType === 'condo' ? 1 : 2,
+      features: [
+        'Central AC',
+        'Updated Kitchen',
+        'Hardwood Floors',
+        'Washer/Dryer',
+        property.propertyType === 'single_family' ? 'Backyard' : 'Balcony',
+        'Pet Friendly',
+      ],
+      taxAssessment: Math.round(property.price * 0.85),
+      hoaFee: property.propertyType === 'condo' ? 350 : property.propertyType === 'townhouse' ? 150 : undefined,
+      images: [
+        property.imageUrl!,
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+        'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800',
+      ],
+      priceHistory: [
+        { date: '2024-01-15', price: property.price, event: 'listed' },
+        { date: '2024-02-01', price: Math.round(property.price * 0.97), event: 'price_change' },
+      ],
+    }
+
+    return details
   }
 
   async getHomeValuation(address: string): Promise<HomeValuation | null> {
-    await this.simulateDelay()
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 200))
 
-    // Generate mock valuation based on address hash
-    const hash = this.simpleHash(address)
-    const baseValue = 350000 + (hash % 500000)
-    const variance = baseValue * 0.1
+    // Generate a mock valuation based on address
+    const basePrice = 400000 + Math.random() * 300000
+    const estimate = Math.round(basePrice)
 
     return {
       address,
-      zestimate: baseValue,
-      rentZestimate: Math.round(baseValue * 0.005), // ~0.5% of value as monthly rent
+      estimate,
+      rentEstimate: Math.round(estimate * 0.004), // ~0.4% of value per month
       valueRange: {
-        low: Math.round(baseValue - variance),
-        high: Math.round(baseValue + variance),
+        low: Math.round(estimate * 0.92),
+        high: Math.round(estimate * 1.08),
       },
       lastUpdated: new Date().toISOString(),
-      taxAssessment: Math.round(baseValue * 0.85),
-      yearBuilt: 2010 + (hash % 14),
-      sqft: 1500 + (hash % 2000),
-    }
-  }
-
-  calculateMortgage(params: MortgageParams): MortgageCalculation {
-    const {
-      homePrice,
-      downPaymentPercent,
-      interestRate,
-      loanTermYears,
-      propertyTaxRate = 0.0125,
-      homeInsuranceRate = 0.0035,
-      pmiRate = 0.005,
-    } = params
-
-    const downPayment = homePrice * (downPaymentPercent / 100)
-    const loanAmount = homePrice - downPayment
-
-    // Monthly interest rate
-    const monthlyRate = interestRate / 100 / 12
-    const numPayments = loanTermYears * 12
-
-    // Calculate monthly principal + interest using amortization formula
-    let monthlyPI: number
-    if (monthlyRate === 0) {
-      monthlyPI = loanAmount / numPayments
-    } else {
-      monthlyPI =
-        (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1)
-    }
-
-    // Monthly property tax
-    const monthlyPropertyTax = (homePrice * propertyTaxRate) / 12
-
-    // Monthly home insurance
-    const monthlyInsurance = (homePrice * homeInsuranceRate) / 12
-
-    // PMI (if down payment < 20%)
-    const monthlyPMI = downPaymentPercent < 20 ? (loanAmount * pmiRate) / 12 : 0
-
-    // Calculate interest portion of first payment (for breakdown)
-    const firstMonthInterest = loanAmount * monthlyRate
-    const firstMonthPrincipal = monthlyPI - firstMonthInterest
-
-    const monthlyPayment = monthlyPI + monthlyPropertyTax + monthlyInsurance + monthlyPMI
-    const totalPayment = monthlyPayment * numPayments
-    const totalInterest = monthlyPI * numPayments - loanAmount
-
-    return {
-      homePrice,
-      downPayment,
-      downPaymentPercent,
-      loanAmount,
-      interestRate,
-      loanTermYears,
-      monthlyPayment: Math.round(monthlyPayment * 100) / 100,
-      monthlyBreakdown: {
-        principal: Math.round(firstMonthPrincipal * 100) / 100,
-        interest: Math.round(firstMonthInterest * 100) / 100,
-        propertyTax: Math.round(monthlyPropertyTax * 100) / 100,
-        homeInsurance: Math.round(monthlyInsurance * 100) / 100,
-        pmi: monthlyPMI > 0 ? Math.round(monthlyPMI * 100) / 100 : undefined,
-      },
-      totalPayment: Math.round(totalPayment * 100) / 100,
-      totalInterest: Math.round(totalInterest * 100) / 100,
+      confidence: Math.random() > 0.3 ? 'high' : 'medium',
     }
   }
 
   async isAvailable(): Promise<boolean> {
     // Mock provider is always available
     return true
-  }
-
-  private async simulateDelay(): Promise<void> {
-    // Simulate 100-300ms network delay
-    const delay = 100 + Math.random() * 200
-    await new Promise((resolve) => setTimeout(resolve, delay))
-  }
-
-  private simpleHash(str: string): number {
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash = hash & hash // Convert to 32-bit integer
-    }
-    return Math.abs(hash)
   }
 }

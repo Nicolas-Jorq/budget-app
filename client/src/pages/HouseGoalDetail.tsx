@@ -100,9 +100,10 @@ export default function HouseGoalDetail() {
       }
 
       setGoal(goalRes.data)
-      setSummary(summaryRes.data)
-      setSavedProperties(propertiesRes.data)
-      setProviderStatus(statusRes.data)
+      // These endpoints return { success: true, data: ... } format
+      setSummary(summaryRes.data?.data || null)
+      setSavedProperties(propertiesRes.data?.data || [])
+      setProviderStatus(statusRes.data?.data || null)
     } catch (err: any) {
       console.error('Error fetching house goal:', err)
       setError('Failed to load house goal')
@@ -210,7 +211,7 @@ export default function HouseGoalDetail() {
         </div>
 
         {/* Provider Status Indicator */}
-        {providerStatus && (
+        {providerStatus?.realEstate && (
           <div className="text-xs text-gray-500 dark:text-gray-400">
             <span className={`inline-flex items-center gap-1 ${providerStatus.realEstate.available ? 'text-green-500' : 'text-yellow-500'}`}>
               <span className={`w-2 h-2 rounded-full ${providerStatus.realEstate.available ? 'bg-green-500' : 'bg-yellow-500'}`} />

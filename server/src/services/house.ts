@@ -1,19 +1,27 @@
-import { prisma } from '../lib/prisma.js'
-import {
-  createRealEstateProvider,
-  createLLMProvider,
-  getProviderStatus,
-} from '../providers/registry.js'
-import {
-  PropertySearchParams,
-  PropertyListing,
-  HomeValuation,
-  MortgageParams,
-  MortgageCalculation,
-} from '../providers/real-estate/types.js'
-import { MarketInsightRequest, MarketInsight } from '../providers/llm/types.js'
-import { Decimal } from '@prisma/client/runtime/library'
+/**
+ * @fileoverview House Savings Service
+ *
+ * Service for managing house savings goals with real estate integration.
+ * Features include property search, home valuations, saved properties,
+ * and mortgage calculations.
+ *
+ * @module services/house
+ */
 
+import { Prisma } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
+import { createLogger } from '../lib/logger.js'
+import { AppError } from '../utils/errors.js'
+import { createRealEstateProvider, createLLMProvider } from '../providers/registry.js'
+import type { PropertySearchParams, PropertyListing } from '../providers/real-estate/types.js'
+import type { LLMMessage } from '../providers/llm/types.js'
+import { REAL_ESTATE_PROMPTS } from '../providers/llm/types.js'
+
+const logger = createLogger('house-service')
+
+/**
+ * Input for creating a house goal configuration
+ */
 export interface CreateHouseGoalInput {
   targetPrice: number
   targetLocation?: string
@@ -23,6 +31,9 @@ export interface CreateHouseGoalInput {
   propertyType?: string
 }
 
+/**
+ * Input for updating a house goal configuration
+ */
 export interface UpdateHouseGoalInput {
   targetPrice?: number
   targetLocation?: string
@@ -30,8 +41,12 @@ export interface UpdateHouseGoalInput {
   targetBathrooms?: number
   downPaymentPct?: number
   propertyType?: string
+  savedSearches?: object[]
 }
 
+/**
+ * Input for saving a property snapshot
+ */
 export interface SavePropertyInput {
   zpid?: string
   address: string
@@ -50,309 +65,394 @@ export interface SavePropertyInput {
   notes?: string
 }
 
-// Initialize providers lazily
-let realEstateProvider: Awaited<ReturnType<typeof createRealEstateProvider>> | null = null
-let llmProvider: Awaited<ReturnType<typeof createLLMProvider>> | null = null
-
-async function getRealEstateProvider() {
-  if (!realEstateProvider) {
-    realEstateProvider = await createRealEstateProvider()
-  }
-  return realEstateProvider
+/**
+ * Mortgage calculation parameters
+ */
+export interface MortgageParams {
+  homePrice: number
+  downPaymentPct: number
+  interestRate: number
+  loanTermYears: number
+  propertyTaxRate?: number    // Annual rate (e.g., 0.012 for 1.2%)
+  insuranceRate?: number      // Annual rate (e.g., 0.0035 for 0.35%)
+  pmiRate?: number            // PMI rate if down payment < 20%
+  hoaMonthly?: number
 }
 
-async function getLLMProvider() {
-  if (!llmProvider) {
-    llmProvider = await createLLMProvider()
-  }
-  return llmProvider
-}
-
+/**
+ * House savings service
+ */
 export const houseService = {
   // ==========================================
-  // House Goal CRUD
+  // House Goal Configuration
   // ==========================================
 
+  /**
+   * Get house goal configuration for a savings goal
+   */
   async getHouseGoal(goalId: string, userId: string) {
-    const goal = await prisma.savingsGoal.findFirst({
+    logger.debug('Fetching house goal', { goalId, userId })
+
+    // Verify the parent goal exists and belongs to user
+    const savingsGoal = await prisma.savingsGoal.findFirst({
       where: { id: goalId, userId, type: 'HOUSE' },
+    })
+
+    if (!savingsGoal) {
+      throw AppError.notFound('House savings goal', goalId)
+    }
+
+    return prisma.houseGoal.findUnique({
+      where: { goalId },
       include: {
-        houseGoal: {
-          include: {
-            savedProperties: {
-              orderBy: { capturedAt: 'desc' },
-            },
+        savedProperties: {
+          orderBy: { capturedAt: 'desc' },
+        },
+        goal: {
+          select: {
+            name: true,
+            targetAmount: true,
+            currentAmount: true,
+            deadline: true,
           },
         },
       },
     })
-
-    if (!goal) return null
-    return goal
   },
 
+  /**
+   * Create house goal configuration for an existing savings goal
+   */
   async createHouseGoal(goalId: string, userId: string, data: CreateHouseGoalInput) {
-    // Verify the goal exists and is a HOUSE type
-    const goal = await prisma.savingsGoal.findFirst({
+    logger.info('Creating house goal config', { goalId, userId })
+
+    // Verify the parent goal exists and belongs to user
+    const savingsGoal = await prisma.savingsGoal.findFirst({
       where: { id: goalId, userId, type: 'HOUSE' },
     })
 
-    if (!goal) {
-      throw new Error('Goal not found or is not a house goal')
+    if (!savingsGoal) {
+      throw AppError.notFound('House savings goal', goalId)
     }
 
-    // Check if house goal config already exists
+    // Check if house goal already exists
     const existing = await prisma.houseGoal.findUnique({
       where: { goalId },
     })
 
     if (existing) {
-      throw new Error('House goal configuration already exists')
+      throw AppError.conflict('House goal configuration already exists')
     }
 
     const houseGoal = await prisma.houseGoal.create({
       data: {
         goalId,
-        targetPrice: new Decimal(data.targetPrice),
+        targetPrice: data.targetPrice,
         targetLocation: data.targetLocation,
         targetBedrooms: data.targetBedrooms,
         targetBathrooms: data.targetBathrooms,
         downPaymentPct: data.downPaymentPct ?? 20,
         propertyType: data.propertyType,
       },
-      include: {
-        savedProperties: true,
-      },
     })
 
+    logger.info('House goal created', { houseGoalId: houseGoal.id, goalId })
     return houseGoal
   },
 
+  /**
+   * Update house goal configuration
+   */
   async updateHouseGoal(goalId: string, userId: string, data: UpdateHouseGoalInput) {
-    // Verify ownership
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-    })
+    logger.info('Updating house goal', { goalId, userId })
 
-    if (!goal) {
-      throw new Error('Goal not found or is not a house goal')
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
     }
 
-    const houseGoal = await prisma.houseGoal.update({
+    const updated = await prisma.houseGoal.update({
       where: { goalId },
       data: {
-        ...(data.targetPrice !== undefined && { targetPrice: new Decimal(data.targetPrice) }),
-        ...(data.targetLocation !== undefined && { targetLocation: data.targetLocation }),
-        ...(data.targetBedrooms !== undefined && { targetBedrooms: data.targetBedrooms }),
-        ...(data.targetBathrooms !== undefined && { targetBathrooms: data.targetBathrooms }),
-        ...(data.downPaymentPct !== undefined && { downPaymentPct: data.downPaymentPct }),
-        ...(data.propertyType !== undefined && { propertyType: data.propertyType }),
-      },
-      include: {
-        savedProperties: true,
+        ...data,
+        savedSearches: data.savedSearches as Prisma.JsonArray | undefined,
       },
     })
 
-    return houseGoal
+    logger.info('House goal updated', { goalId })
+    return updated
   },
 
   // ==========================================
-  // Property Search & Details
+  // Property Search & Valuation
   // ==========================================
 
-  async searchProperties(params: PropertySearchParams): Promise<PropertyListing[]> {
-    const provider = await getRealEstateProvider()
-    return provider.searchProperties(params)
+  /**
+   * Search for properties using the configured real estate provider
+   */
+  async searchProperties(params: PropertySearchParams) {
+    logger.info('Searching properties', { location: params.location })
+
+    const provider = await createRealEstateProvider()
+    
+    try {
+      const properties = await provider.searchProperties(params)
+      logger.debug('Properties found', { count: properties.length })
+      return properties
+    } catch (error) {
+      logger.error('Property search failed', { error })
+      throw AppError.serviceUnavailable('Property search failed. Please try again later.')
+    }
   },
 
-  async getPropertyDetails(propertyId: string): Promise<PropertyListing | null> {
-    const provider = await getRealEstateProvider()
-    return provider.getPropertyDetails(propertyId)
+  /**
+   * Get detailed information about a specific property
+   */
+  async getPropertyDetails(propertyId: string) {
+    logger.debug('Fetching property details', { propertyId })
+
+    const provider = await createRealEstateProvider()
+    
+    try {
+      const details = await provider.getPropertyDetails(propertyId)
+      if (!details) {
+        throw AppError.notFound('Property', propertyId)
+      }
+      return details
+    } catch (error) {
+      if (error instanceof AppError) throw error
+      logger.error('Property details fetch failed', { error })
+      throw AppError.serviceUnavailable('Failed to fetch property details.')
+    }
   },
 
-  async getHomeValuation(address: string): Promise<HomeValuation | null> {
-    const provider = await getRealEstateProvider()
-    return provider.getHomeValuation(address)
+  /**
+   * Get home valuation estimate for an address
+   */
+  async getHomeValuation(address: string) {
+    logger.info('Getting home valuation', { address })
+
+    const provider = await createRealEstateProvider()
+    
+    try {
+      const valuation = await provider.getHomeValuation(address)
+      if (!valuation) {
+        logger.warn('Valuation not available', { address })
+        return null
+      }
+      return valuation
+    } catch (error) {
+      logger.error('Valuation failed', { error })
+      throw AppError.serviceUnavailable('Valuation service unavailable.')
+    }
   },
 
   // ==========================================
   // Saved Properties
   // ==========================================
 
-  async getSavedProperties(goalId: string, userId: string) {
-    // Verify ownership
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-      include: { houseGoal: true },
-    })
-
-    if (!goal?.houseGoal) {
-      throw new Error('House goal not found')
-    }
-
-    const properties = await prisma.propertySnapshot.findMany({
-      where: { houseGoalId: goal.houseGoal.id },
-      orderBy: [{ isFavorite: 'desc' }, { capturedAt: 'desc' }],
-    })
-
-    return properties
-  },
-
+  /**
+   * Save a property to the user's house goal
+   */
   async saveProperty(goalId: string, userId: string, data: SavePropertyInput) {
-    // Verify ownership
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-      include: { houseGoal: true },
-    })
+    logger.info('Saving property snapshot', { goalId, address: data.address })
 
-    if (!goal?.houseGoal) {
-      throw new Error('House goal not found')
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
     }
 
-    const property = await prisma.propertySnapshot.create({
+    const snapshot = await prisma.propertySnapshot.create({
       data: {
-        houseGoalId: goal.houseGoal.id,
+        houseGoalId: houseGoal.id,
         zpid: data.zpid,
         address: data.address,
         city: data.city,
         state: data.state,
         zipCode: data.zipCode,
-        price: new Decimal(data.price),
+        price: data.price,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         sqft: data.sqft,
         yearBuilt: data.yearBuilt,
         propertyType: data.propertyType,
-        zestimate: data.zestimate ? new Decimal(data.zestimate) : null,
+        zestimate: data.zestimate,
         imageUrl: data.imageUrl,
         listingUrl: data.listingUrl,
         notes: data.notes,
       },
     })
 
-    return property
+    logger.info('Property saved', { snapshotId: snapshot.id })
+    return snapshot
   },
 
-  async updateSavedProperty(
-    propertyId: string,
-    goalId: string,
-    userId: string,
-    data: { isFavorite?: boolean; notes?: string }
-  ) {
-    // Verify ownership
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-      include: { houseGoal: true },
-    })
+  /**
+   * Get all saved properties for a house goal
+   */
+  async getSavedProperties(goalId: string, userId: string) {
+    logger.debug('Fetching saved properties', { goalId })
 
-    if (!goal?.houseGoal) {
-      throw new Error('House goal not found')
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
     }
 
-    const property = await prisma.propertySnapshot.updateMany({
-      where: {
-        id: propertyId,
-        houseGoalId: goal.houseGoal.id,
-      },
-      data,
+    return prisma.propertySnapshot.findMany({
+      where: { houseGoalId: houseGoal.id },
+      orderBy: [{ isFavorite: 'desc' }, { capturedAt: 'desc' }],
     })
+  },
 
-    if (property.count === 0) {
-      throw new Error('Property not found')
+  /**
+   * Toggle favorite status of a saved property
+   */
+  async togglePropertyFavorite(propertyId: string, goalId: string, userId: string) {
+    logger.debug('Toggling property favorite', { propertyId })
+
+    // Verify ownership through house goal
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
     }
 
-    return prisma.propertySnapshot.findUnique({
+    const property = await prisma.propertySnapshot.findFirst({
+      where: { id: propertyId, houseGoalId: houseGoal.id },
+    })
+
+    if (!property) {
+      throw AppError.notFound('Saved property', propertyId)
+    }
+
+    return prisma.propertySnapshot.update({
+      where: { id: propertyId },
+      data: { isFavorite: !property.isFavorite },
+    })
+  },
+
+  /**
+   * Update notes on a saved property
+   */
+  async updatePropertyNotes(propertyId: string, goalId: string, userId: string, notes: string) {
+    logger.debug('Updating property notes', { propertyId })
+
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
+    }
+
+    const property = await prisma.propertySnapshot.findFirst({
+      where: { id: propertyId, houseGoalId: houseGoal.id },
+    })
+
+    if (!property) {
+      throw AppError.notFound('Saved property', propertyId)
+    }
+
+    return prisma.propertySnapshot.update({
+      where: { id: propertyId },
+      data: { notes },
+    })
+  },
+
+  /**
+   * Delete a saved property
+   */
+  async deleteProperty(propertyId: string, goalId: string, userId: string) {
+    logger.info('Deleting saved property', { propertyId })
+
+    const houseGoal = await this.getHouseGoal(goalId, userId)
+    if (!houseGoal) {
+      throw AppError.notFound('House goal configuration', goalId)
+    }
+
+    const property = await prisma.propertySnapshot.findFirst({
+      where: { id: propertyId, houseGoalId: houseGoal.id },
+    })
+
+    if (!property) {
+      throw AppError.notFound('Saved property', propertyId)
+    }
+
+    await prisma.propertySnapshot.delete({
       where: { id: propertyId },
     })
-  },
 
-  async deleteSavedProperty(propertyId: string, goalId: string, userId: string) {
-    // Verify ownership
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-      include: { houseGoal: true },
-    })
-
-    if (!goal?.houseGoal) {
-      throw new Error('House goal not found')
-    }
-
-    const result = await prisma.propertySnapshot.deleteMany({
-      where: {
-        id: propertyId,
-        houseGoalId: goal.houseGoal.id,
-      },
-    })
-
-    if (result.count === 0) {
-      throw new Error('Property not found')
-    }
-
-    return { deleted: true }
+    logger.info('Property deleted', { propertyId })
+    return property
   },
 
   // ==========================================
   // Mortgage Calculator
   // ==========================================
 
-  calculateMortgage(params: MortgageParams): MortgageCalculation {
-    // Use the provider's mortgage calculation (pure math, works offline)
-    const provider = realEstateProvider
-    if (provider) {
-      return provider.calculateMortgage(params)
-    }
-
-    // Fallback calculation if provider not yet initialized
+  /**
+   * Calculate mortgage payments and related costs
+   */
+  calculateMortgage(params: MortgageParams) {
     const {
       homePrice,
-      downPaymentPercent,
+      downPaymentPct,
       interestRate,
       loanTermYears,
-      propertyTaxRate = 0.0125,
-      homeInsuranceRate = 0.0035,
-      pmiRate = 0.005,
+      propertyTaxRate = 0.012,  // Default 1.2%
+      insuranceRate = 0.0035,   // Default 0.35%
+      pmiRate = 0.005,          // Default 0.5% if applicable
+      hoaMonthly = 0,
     } = params
 
-    const downPayment = homePrice * (downPaymentPercent / 100)
+    // Calculate down payment and loan amount
+    const downPayment = homePrice * (downPaymentPct / 100)
     const loanAmount = homePrice - downPayment
+
+    // Monthly interest rate
     const monthlyRate = interestRate / 100 / 12
     const numPayments = loanTermYears * 12
 
+    // Calculate principal + interest using amortization formula
     let monthlyPI: number
     if (monthlyRate === 0) {
       monthlyPI = loanAmount / numPayments
     } else {
-      monthlyPI =
-        (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1)
+      monthlyPI = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                  (Math.pow(1 + monthlyRate, numPayments) - 1)
     }
 
-    const monthlyPropertyTax = (homePrice * propertyTaxRate) / 12
-    const monthlyInsurance = (homePrice * homeInsuranceRate) / 12
-    const monthlyPMI = downPaymentPercent < 20 ? (loanAmount * pmiRate) / 12 : 0
-    const firstMonthInterest = loanAmount * monthlyRate
-    const firstMonthPrincipal = monthlyPI - firstMonthInterest
-    const monthlyPayment = monthlyPI + monthlyPropertyTax + monthlyInsurance + monthlyPMI
-    const totalPayment = monthlyPayment * numPayments
-    const totalInterest = monthlyPI * numPayments - loanAmount
+    // Monthly property tax
+    const monthlyTax = (homePrice * propertyTaxRate) / 12
+
+    // Monthly insurance
+    const monthlyInsurance = (homePrice * insuranceRate) / 12
+
+    // PMI (if down payment < 20%)
+    const monthlyPMI = downPaymentPct < 20 ? (loanAmount * pmiRate) / 12 : 0
+
+    // Total monthly payment (PITI + PMI + HOA)
+    const totalMonthly = monthlyPI + monthlyTax + monthlyInsurance + monthlyPMI + hoaMonthly
+
+    // Total paid over life of loan
+    const totalPaid = (monthlyPI * numPayments) + (monthlyTax * numPayments) + 
+                      (monthlyInsurance * numPayments) + (hoaMonthly * numPayments)
+    
+    // Total interest paid
+    const totalInterest = (monthlyPI * numPayments) - loanAmount
 
     return {
       homePrice,
-      downPayment,
-      downPaymentPercent,
-      loanAmount,
-      interestRate,
-      loanTermYears,
-      monthlyPayment: Math.round(monthlyPayment * 100) / 100,
-      monthlyBreakdown: {
-        principal: Math.round(firstMonthPrincipal * 100) / 100,
-        interest: Math.round(firstMonthInterest * 100) / 100,
-        propertyTax: Math.round(monthlyPropertyTax * 100) / 100,
-        homeInsurance: Math.round(monthlyInsurance * 100) / 100,
-        pmi: monthlyPMI > 0 ? Math.round(monthlyPMI * 100) / 100 : undefined,
+      downPayment: Math.round(downPayment),
+      loanAmount: Math.round(loanAmount),
+      monthlyPayment: {
+        principalAndInterest: Math.round(monthlyPI),
+        propertyTax: Math.round(monthlyTax),
+        insurance: Math.round(monthlyInsurance),
+        pmi: Math.round(monthlyPMI),
+        hoa: hoaMonthly,
+        total: Math.round(totalMonthly),
       },
-      totalPayment: Math.round(totalPayment * 100) / 100,
-      totalInterest: Math.round(totalInterest * 100) / 100,
+      totalPaid: Math.round(totalPaid),
+      totalInterest: Math.round(totalInterest),
+      loanTermMonths: numPayments,
+      effectiveRate: interestRate,
     }
   },
 
@@ -360,81 +460,109 @@ export const houseService = {
   // AI Insights
   // ==========================================
 
-  async getMarketInsight(request: MarketInsightRequest): Promise<MarketInsight> {
-    const provider = await getLLMProvider()
-    return provider.getMarketInsight(request)
-  },
+  /**
+   * Get AI-powered market insights for a location
+   */
+  async getMarketInsights(location: string, priceRange?: { min?: number; max?: number }) {
+    logger.info('Getting market insights', { location })
 
-  // ==========================================
-  // Provider Status
-  // ==========================================
+    const llmProvider = await createLLMProvider()
+    const isAvailable = await llmProvider.isAvailable()
 
-  async getProviderStatus() {
-    return getProviderStatus()
-  },
-
-  // ==========================================
-  // House Goal Summary
-  // ==========================================
-
-  async getHouseGoalSummary(goalId: string, userId: string) {
-    const goal = await prisma.savingsGoal.findFirst({
-      where: { id: goalId, userId, type: 'HOUSE' },
-      include: {
-        houseGoal: {
-          include: {
-            savedProperties: true,
-          },
-        },
-      },
-    })
-
-    if (!goal?.houseGoal) {
-      return null
+    if (!isAvailable) {
+      logger.warn('LLM provider not available')
+      return {
+        available: false,
+        message: 'AI insights are not configured. Set up an LLM provider in your .env file.',
+      }
     }
 
-    const houseGoal = goal.houseGoal
-    const targetPrice = Number(houseGoal.targetPrice)
-    const currentSaved = Number(goal.currentAmount)
-    const downPaymentAmount = targetPrice * (houseGoal.downPaymentPct / 100)
-    const progressToDownPayment = downPaymentAmount > 0 ? (currentSaved / downPaymentAmount) * 100 : 0
-    const remainingForDownPayment = Math.max(0, downPaymentAmount - currentSaved)
+    try {
+      const prompt = REAL_ESTATE_PROMPTS.marketAnalysis(location, priceRange)
+      const messages: LLMMessage[] = [
+        { role: 'system', content: prompt.system },
+        { role: 'user', content: prompt.user },
+      ]
 
-    // Calculate mortgage info based on target price
-    const mortgageEstimate = this.calculateMortgage({
-      homePrice: targetPrice,
-      downPaymentPercent: houseGoal.downPaymentPct,
-      interestRate: 6.5, // Default current rate estimate
-      loanTermYears: 30,
-    })
+      const response = await llmProvider.complete({ messages, temperature: 0.7 })
+
+      return {
+        available: true,
+        content: response.content,
+        model: response.model,
+        usage: response.usage,
+      }
+    } catch (error) {
+      logger.error('Market insights failed', { error })
+      return {
+        available: false,
+        message: 'Failed to generate insights. Please try again later.',
+      }
+    }
+  },
+
+  /**
+   * Get AI evaluation of a specific property
+   */
+  async getPropertyInsight(property: PropertyListing) {
+    logger.info('Getting property insight', { address: property.address })
+
+    const llmProvider = await createLLMProvider()
+    const isAvailable = await llmProvider.isAvailable()
+
+    if (!isAvailable) {
+      return {
+        available: false,
+        message: 'AI insights are not configured.',
+      }
+    }
+
+    try {
+      const prompt = REAL_ESTATE_PROMPTS.propertyEvaluation({
+        address: property.address,
+        price: property.price,
+        sqft: property.sqft,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        yearBuilt: property.yearBuilt,
+      })
+
+      const messages: LLMMessage[] = [
+        { role: 'system', content: prompt.system },
+        { role: 'user', content: prompt.user },
+      ]
+
+      const response = await llmProvider.complete({ messages, temperature: 0.7 })
+
+      return {
+        available: true,
+        content: response.content,
+        model: response.model,
+      }
+    } catch (error) {
+      logger.error('Property insight failed', { error })
+      return {
+        available: false,
+        message: 'Failed to generate property insight.',
+      }
+    }
+  },
+
+  /**
+   * Check provider availability
+   */
+  async checkProviderStatus() {
+    const realEstateProvider = await createRealEstateProvider()
+    const llmProvider = await createLLMProvider()
 
     return {
-      goal: {
-        id: goal.id,
-        name: goal.name,
-        targetAmount: Number(goal.targetAmount),
-        currentAmount: currentSaved,
-        deadline: goal.deadline,
-        isCompleted: goal.isCompleted,
+      realEstate: {
+        name: realEstateProvider.name,
+        available: await realEstateProvider.isAvailable(),
       },
-      houseDetails: {
-        targetPrice,
-        targetLocation: houseGoal.targetLocation,
-        targetBedrooms: houseGoal.targetBedrooms,
-        targetBathrooms: houseGoal.targetBathrooms,
-        downPaymentPct: houseGoal.downPaymentPct,
-        propertyType: houseGoal.propertyType,
-      },
-      progress: {
-        downPaymentAmount,
-        currentSaved,
-        remainingForDownPayment,
-        progressPercent: Math.min(progressToDownPayment, 100),
-      },
-      mortgageEstimate,
-      savedProperties: {
-        total: houseGoal.savedProperties.length,
-        favorites: houseGoal.savedProperties.filter((p) => p.isFavorite).length,
+      llm: {
+        name: llmProvider.name,
+        available: await llmProvider.isAvailable(),
       },
     }
   },

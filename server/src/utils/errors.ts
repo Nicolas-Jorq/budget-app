@@ -208,6 +208,19 @@ export class AppError extends Error {
   }
 
   /**
+   * Creates a service unavailable error (503 Service Unavailable).
+   *
+   * @param message - Description of the service failure
+   * @returns AppError instance
+   *
+   * @example
+   * throw AppError.serviceUnavailable('Property search failed. Please try again later.');
+   */
+  static serviceUnavailable(message: string): AppError {
+    return new AppError(message, HttpStatus.SERVICE_UNAVAILABLE, ErrorCode.EXTERNAL_SERVICE_ERROR)
+  }
+
+  /**
    * Creates an internal server error (500 Internal Server Error).
    *
    * @param message - Error description (will be sanitized in production)

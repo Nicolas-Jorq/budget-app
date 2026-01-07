@@ -1,28 +1,34 @@
 /**
- * SimplyRETS Real Estate Provider
+ * @fileoverview SimplyRETS Real Estate Provider
  *
- * Uses SimplyRETS demo API - no API key required!
- * Demo credentials: simplyrets:simplyrets
+ * Provider implementation using SimplyRETS API.
+ * SimplyRETS offers a free demo mode with sample data.
  *
- * Docs: https://docs.simplyrets.com/api/index.html
+ * Demo credentials (no signup needed):
+ * - Username: simplyrets
+ * - Password: simplyrets
+ *
+ * @see https://docs.simplyrets.com/
+ * @module providers/real-estate/simplyrets
  */
 
-import {
+import type {
   RealEstateProvider,
   PropertySearchParams,
   PropertyListing,
-  PropertyType,
+  PropertyDetails,
   HomeValuation,
-  MortgageParams,
-  MortgageCalculation,
+  PropertyType,
 } from './types.js'
 
+/**
+ * SimplyRETS API response types
+ */
 interface SimplyRetsProperty {
   mlsId: number
   address: {
     streetNumber: string
     streetName: string
-    streetSuffix?: string
     city: string
     state: string
     postalCode: string
@@ -34,243 +40,193 @@ interface SimplyRetsProperty {
     bathsFull: number
     bathsHalf: number
     area: number
-    yearBuilt?: number
-    type?: string
-    subType?: string
-    lotSize?: string
+    yearBuilt: number
+    type: string
+    style: string
   }
-  photos: string[]
-  listDate: string
-  geo?: {
+  geo: {
     lat: number
     lng: number
   }
-  remarks?: string
-  virtualTourUrl?: string
+  photos: string[]
+  listDate: string
+  remarks: string
   mls: {
-    status: string
     daysOnMarket: number
   }
 }
 
+/**
+ * Map SimplyRETS property type to our PropertyType
+ */
+function mapPropertyType(type: string): PropertyType {
+  const typeMap: Record<string, PropertyType> = {
+    'RES': 'single_family',
+    'Residential': 'single_family',
+    'Single Family': 'single_family',
+    'CND': 'condo',
+    'Condominium': 'condo',
+    'Condo': 'condo',
+    'TWN': 'townhouse',
+    'Townhouse': 'townhouse',
+    'MLT': 'multi_family',
+    'Multi-Family': 'multi_family',
+    'APT': 'apartment',
+    'Apartment': 'apartment',
+    'LND': 'land',
+    'Land': 'land',
+  }
+  return typeMap[type] || 'single_family'
+}
+
+/**
+ * SimplyRETS provider implementation
+ */
 export class SimplyRetsProvider implements RealEstateProvider {
-  name = 'SimplyRETS Demo'
+  readonly name = 'SimplyRETS'
   private baseUrl = 'https://api.simplyrets.com'
-  // Demo credentials - publicly available for testing
-  private auth = Buffer.from('simplyrets:simplyrets').toString('base64')
+  private username: string
+  private password: string
+
+  constructor() {
+    // Use demo credentials if none provided
+    this.username = process.env.SIMPLYRETS_API_KEY || 'simplyrets'
+    this.password = process.env.SIMPLYRETS_API_SECRET || 'simplyrets'
+  }
+
+  private getAuthHeader(): string {
+    const credentials = Buffer.from(`${this.username}:${this.password}`).toString('base64')
+    return `Basic ${credentials}`
+  }
 
   async searchProperties(params: PropertySearchParams): Promise<PropertyListing[]> {
     const queryParams = new URLSearchParams()
-
-    // SimplyRETS uses different param names
-    if (params.minPrice) queryParams.set('minprice', params.minPrice.toString())
-    if (params.maxPrice) queryParams.set('maxprice', params.maxPrice.toString())
-    if (params.bedrooms) queryParams.set('minbeds', params.bedrooms.toString())
-    if (params.bathrooms) queryParams.set('minbaths', params.bathrooms.toString())
-    if (params.limit) queryParams.set('limit', params.limit.toString())
-
-    // Location search - try to parse city/state or use as search term
+    
+    // SimplyRETS uses q for location search
     if (params.location) {
-      // Check if it looks like "City, State" format
-      const parts = params.location.split(',').map((p) => p.trim())
-      if (parts.length >= 1) {
-        queryParams.set('cities', parts[0])
-      }
+      queryParams.append('q', params.location)
     }
-
-    // Property type mapping
-    if (params.propertyType) {
-      const typeMap: Record<string, string> = {
-        single_family: 'Residential',
-        condo: 'Condominium',
-        townhouse: 'Residential',
-        multi_family: 'Multifamily',
-        apartment: 'Rental',
-      }
-      const mappedType = typeMap[params.propertyType]
-      if (mappedType) {
-        queryParams.set('type', mappedType)
-      }
+    if (params.minPrice) {
+      queryParams.append('minprice', params.minPrice.toString())
     }
-
-    queryParams.set('status', 'Active')
+    if (params.maxPrice) {
+      queryParams.append('maxprice', params.maxPrice.toString())
+    }
+    if (params.bedrooms) {
+      queryParams.append('minbeds', params.bedrooms.toString())
+    }
+    if (params.bathrooms) {
+      queryParams.append('minbaths', params.bathrooms.toString())
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString())
+    }
 
     try {
-      const response = await fetch(`${this.baseUrl}/properties?${queryParams}`, {
-        headers: {
-          Authorization: `Basic ${this.auth}`,
-          Accept: 'application/json',
-        },
-      })
+      const response = await fetch(
+        `${this.baseUrl}/properties?${queryParams.toString()}`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Accept': 'application/json',
+          },
+        }
+      )
 
       if (!response.ok) {
-        console.error('SimplyRETS API error:', response.status, response.statusText)
-        return []
+        throw new Error(`SimplyRETS API error: ${response.status}`)
       }
 
-      const data = (await response.json()) as SimplyRetsProperty[]
-      return data.map((p) => this.mapProperty(p))
+      const data = await response.json() as SimplyRetsProperty[]
+
+      return data.map(p => this.mapToPropertyListing(p))
     } catch (error) {
       console.error('SimplyRETS search error:', error)
-      return []
+      throw error
     }
   }
 
-  async getPropertyDetails(propertyId: string): Promise<PropertyListing | null> {
+  async getPropertyDetails(propertyId: string): Promise<PropertyDetails | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/properties/${propertyId}`, {
-        headers: {
-          Authorization: `Basic ${this.auth}`,
-          Accept: 'application/json',
-        },
-      })
+      const response = await fetch(
+        `${this.baseUrl}/properties/${propertyId}`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Accept': 'application/json',
+          },
+        }
+      )
 
-      if (!response.ok) {
+      if (response.status === 404) {
         return null
       }
 
-      const data = (await response.json()) as SimplyRetsProperty
+      if (!response.ok) {
+        throw new Error(`SimplyRETS API error: ${response.status}`)
+      }
+
+      const data = await response.json() as SimplyRetsProperty
+
+      const listing = this.mapToPropertyListing(data)
+      
       return {
-        ...this.mapProperty(data),
-        description: data.remarks || undefined,
+        ...listing,
+        description: data.remarks,
+        images: data.photos,
+        features: [],  // SimplyRETS doesn't provide features in basic response
       }
     } catch (error) {
-      console.error('SimplyRETS details error:', error)
-      return null
+      console.error('SimplyRETS property details error:', error)
+      throw error
     }
   }
 
-  async getHomeValuation(address: string): Promise<HomeValuation | null> {
-    // SimplyRETS doesn't provide valuations - return mock estimate
-    // In production, you'd use a different service for this
-    const hash = this.simpleHash(address)
-    const baseValue = 350000 + (hash % 500000)
-    const variance = baseValue * 0.1
-
-    return {
-      address,
-      zestimate: baseValue,
-      rentZestimate: Math.round(baseValue * 0.005),
-      valueRange: {
-        low: Math.round(baseValue - variance),
-        high: Math.round(baseValue + variance),
-      },
-      lastUpdated: new Date().toISOString(),
-      taxAssessment: Math.round(baseValue * 0.85),
-      yearBuilt: 2010 + (hash % 14),
-      sqft: 1500 + (hash % 2000),
-    }
-  }
-
-  calculateMortgage(params: MortgageParams): MortgageCalculation {
-    const {
-      homePrice,
-      downPaymentPercent,
-      interestRate,
-      loanTermYears,
-      propertyTaxRate = 0.0125,
-      homeInsuranceRate = 0.0035,
-      pmiRate = 0.005,
-    } = params
-
-    const downPayment = homePrice * (downPaymentPercent / 100)
-    const loanAmount = homePrice - downPayment
-    const monthlyRate = interestRate / 100 / 12
-    const numPayments = loanTermYears * 12
-
-    let monthlyPI: number
-    if (monthlyRate === 0) {
-      monthlyPI = loanAmount / numPayments
-    } else {
-      monthlyPI =
-        (loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1)
-    }
-
-    const monthlyPropertyTax = (homePrice * propertyTaxRate) / 12
-    const monthlyInsurance = (homePrice * homeInsuranceRate) / 12
-    const monthlyPMI = downPaymentPercent < 20 ? (loanAmount * pmiRate) / 12 : 0
-    const firstMonthInterest = loanAmount * monthlyRate
-    const firstMonthPrincipal = monthlyPI - firstMonthInterest
-    const monthlyPayment = monthlyPI + monthlyPropertyTax + monthlyInsurance + monthlyPMI
-    const totalPayment = monthlyPayment * numPayments
-    const totalInterest = monthlyPI * numPayments - loanAmount
-
-    return {
-      homePrice,
-      downPayment,
-      downPaymentPercent,
-      loanAmount,
-      interestRate,
-      loanTermYears,
-      monthlyPayment: Math.round(monthlyPayment * 100) / 100,
-      monthlyBreakdown: {
-        principal: Math.round(firstMonthPrincipal * 100) / 100,
-        interest: Math.round(firstMonthInterest * 100) / 100,
-        propertyTax: Math.round(monthlyPropertyTax * 100) / 100,
-        homeInsurance: Math.round(monthlyInsurance * 100) / 100,
-        pmi: monthlyPMI > 0 ? Math.round(monthlyPMI * 100) / 100 : undefined,
-      },
-      totalPayment: Math.round(totalPayment * 100) / 100,
-      totalInterest: Math.round(totalInterest * 100) / 100,
-    }
+  async getHomeValuation(_address: string): Promise<HomeValuation | null> {
+    // SimplyRETS doesn't provide home valuations
+    // Return null to indicate this feature is not available
+    console.warn('SimplyRETS does not support home valuations')
+    return null
   }
 
   async isAvailable(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/properties?limit=1`, {
-        headers: {
-          Authorization: `Basic ${this.auth}`,
-          Accept: 'application/json',
-        },
-      })
+      const response = await fetch(
+        `${this.baseUrl}/properties?limit=1`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Accept': 'application/json',
+          },
+        }
+      )
       return response.ok
     } catch {
       return false
     }
   }
 
-  private mapProperty(p: SimplyRetsProperty): PropertyListing {
-    const totalBaths = p.property.bathsFull + p.property.bathsHalf * 0.5
-
-    // Map SimplyRETS property type to our types
-    let propertyType: PropertyType = 'single_family'
-    if (p.property.type === 'Condominium' || p.property.subType?.includes('Condo')) {
-      propertyType = 'condo'
-    } else if (p.property.subType?.includes('Townhouse')) {
-      propertyType = 'townhouse'
-    } else if (p.property.type === 'Multifamily') {
-      propertyType = 'multi_family'
-    }
-
+  private mapToPropertyListing(data: SimplyRetsProperty): PropertyListing {
+    const bathrooms = data.property.bathsFull + (data.property.bathsHalf * 0.5)
+    
     return {
-      id: p.mlsId.toString(),
-      address: p.address.full,
-      city: p.address.city,
-      state: p.address.state,
-      zipCode: p.address.postalCode,
-      price: p.listPrice,
-      bedrooms: p.property.bedrooms,
-      bathrooms: totalBaths,
-      sqft: p.property.area,
-      yearBuilt: p.property.yearBuilt,
-      propertyType,
-      imageUrl: p.photos?.[0] || undefined,
-      listingUrl: p.virtualTourUrl || undefined,
-      latitude: p.geo?.lat,
-      longitude: p.geo?.lng,
-      daysOnMarket: p.mls.daysOnMarket,
-      pricePerSqft: p.property.area > 0 ? Math.round(p.listPrice / p.property.area) : undefined,
+      id: data.mlsId.toString(),
+      address: data.address.full || `${data.address.streetNumber} ${data.address.streetName}`,
+      city: data.address.city,
+      state: data.address.state,
+      zipCode: data.address.postalCode,
+      price: data.listPrice,
+      bedrooms: data.property.bedrooms,
+      bathrooms,
+      sqft: data.property.area,
+      yearBuilt: data.property.yearBuilt,
+      propertyType: mapPropertyType(data.property.type),
+      imageUrl: data.photos?.[0],
+      listingUrl: undefined,  // SimplyRETS doesn't provide listing URLs
+      latitude: data.geo?.lat,
+      longitude: data.geo?.lng,
+      daysOnMarket: data.mls?.daysOnMarket,
+      pricePerSqft: data.property.area ? Math.round(data.listPrice / data.property.area) : undefined,
     }
-  }
-
-  private simpleHash(str: string): number {
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash = hash & hash
-    }
-    return Math.abs(hash)
   }
 }
