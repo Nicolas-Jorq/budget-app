@@ -14,9 +14,25 @@ import type {
 } from './types.js'
 
 /**
- * Pre-canned responses for common real estate topics
+ * Pre-canned responses for common topics
  */
 const MOCK_RESPONSES: Record<string, string> = {
+  // Spending insights responses
+  spending: `Your finances are looking healthy overall. Your spending has been consistent this month, with food and transportation being your largest categories.
+
+**Key insight:** Consider reviewing your subscription services - small monthly charges can add up quickly.
+
+Keep tracking your expenses and you'll stay on top of your budget!`,
+
+  savings: `You're making good progress on your savings goals! Based on your current contribution rate, you're on track to meet most of your targets.
+
+**Tip:** Even small increases to your monthly savings can make a big difference over time. Try rounding up to the nearest $50.`,
+
+  budget: `Your budget usage looks reasonable. A few categories are running higher than usual, but overall you're within healthy limits.
+
+**Focus area:** Your entertainment spending has increased recently. Consider setting a weekly limit to stay on track.`,
+
+  // Real estate responses
   market: `Based on current market data, this area shows moderate activity with balanced supply and demand. Home prices have remained relatively stable over the past quarter, with a slight upward trend of 2-3%.
 
 Key observations:
@@ -84,13 +100,21 @@ export class MockLLMProvider implements LLMProvider {
     
     let response: string
 
-    if (userMessage.includes('market') || userMessage.includes('analyze')) {
+    // Financial insights
+    if (userMessage.includes('spending') || userMessage.includes('financial') || userMessage.includes('expense')) {
+      response = MOCK_RESPONSES.spending
+    } else if (userMessage.includes('saving') || userMessage.includes('goal')) {
+      response = MOCK_RESPONSES.savings
+    } else if (userMessage.includes('budget') && !userMessage.includes('home')) {
+      response = MOCK_RESPONSES.budget
+    // Real estate insights
+    } else if (userMessage.includes('market') || userMessage.includes('analyze')) {
       response = MOCK_RESPONSES.market
     } else if (userMessage.includes('property') || userMessage.includes('evaluate')) {
       response = MOCK_RESPONSES.property
     } else if (userMessage.includes('neighborhood') || userMessage.includes('compare')) {
       response = MOCK_RESPONSES.neighborhood
-    } else if (userMessage.includes('afford') || userMessage.includes('income') || userMessage.includes('budget')) {
+    } else if (userMessage.includes('afford') || userMessage.includes('income') || userMessage.includes('home')) {
       response = MOCK_RESPONSES.affordability
     } else {
       response = `I understand you're asking about real estate. Here are some general thoughts:

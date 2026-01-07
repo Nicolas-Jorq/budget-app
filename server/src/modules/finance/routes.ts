@@ -14,6 +14,7 @@
  * - /api/finance/documents/* - Bank statement documents
  * - /api/finance/house/* - House savings features
  * - /api/finance/dashboard/* - Finance dashboard stats
+ * - /api/finance/insights/* - AI-powered financial insights
  *
  * @module modules/finance/routes
  */
@@ -30,6 +31,7 @@ import bankAccountRoutes from '../../routes/bank-accounts.js'
 import documentRoutes from '../../routes/documents.js'
 import houseRoutes from '../../routes/house.js'
 import dashboardRoutes from '../../routes/dashboard.js'
+import aiInsightsRoutes from '../../routes/ai-insights.js'
 
 const router = Router()
 
@@ -43,5 +45,6 @@ router.use('/bank-accounts', bankAccountRoutes)
 router.use('/documents', documentRoutes)
 router.use('/house', houseRoutes)
 router.use('/dashboard', dashboardRoutes)
+router.use('/insights', aiInsightsRoutes)
 
 export default router

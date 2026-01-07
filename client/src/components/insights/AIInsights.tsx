@@ -10,12 +10,7 @@
  */
 
 import { useState, useEffect } from 'react'
-
-/**
- * Base URL for the AI analytics service.
- * Defaults to localhost:8000 if not configured in environment variables.
- */
-const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000'
+import api from '../../services/api'
 
 /**
  * Represents a single AI-generated financial recommendation.
@@ -85,6 +80,7 @@ interface GoalPrediction {
  * @property {object | null} goalPredictions - Goal predictions with summary and individual predictions
  * @property {object | null} anomalies - Detected spending anomalies summary
  * @property {object} recommendations - AI recommendations with summary and list
+ * @property {string} [narrative] - AI-generated narrative insight
  */
 interface AnalysisData {
   spendingPatterns: {
@@ -93,7 +89,10 @@ interface AnalysisData {
       category: string
       total: number
       percentage: number
+      trend?: 'increasing' | 'decreasing' | 'stable'
     }>
+    monthlyTrend?: Array<{ month: string; amount: number }>
+    weekdayPattern?: Array<{ day: string; avgAmount: number }>
   } | null
   goalPredictions: {
     summary: {
@@ -108,6 +107,12 @@ interface AnalysisData {
       totalAnomalies: number
       hasHighPriority: boolean
     }
+    anomalies?: Array<{
+      id: string
+      type: string
+      severity: string
+      description: string
+    }>
   } | null
   recommendations: {
     summary: {
@@ -116,17 +121,14 @@ interface AnalysisData {
     }
     recommendations: Recommendation[]
   }
+  narrative?: string
 }
 
 /**
  * Props for the AIInsights component.
- *
- * @interface AIInsightsProps
- * @property {string} userId - User ID for fetching personalized insights
+ * Note: userId is no longer needed as the API uses the authenticated user's token.
  */
-interface AIInsightsProps {
-  userId: string
-}
+type AIInsightsProps = Record<string, never>
 
 /**
  * Renders an AI-powered financial insights dashboard.
@@ -141,27 +143,26 @@ interface AIInsightsProps {
  * - Error state with retry option
  * - Dark mode support throughout
  *
- * @param {AIInsightsProps} props - Component props
- * @param {string} props.userId - User ID for personalized insights
+ * @param {AIInsightsProps} _props - Component props (currently empty)
  * @returns {JSX.Element} AI insights dashboard with recommendations and analysis
  *
  * @example
- * <AIInsights userId="user-123" />
+ * <AIInsights />
  */
-export function AIInsights({ userId }: AIInsightsProps) {
+export function AIInsights(_props: AIInsightsProps) {
   // Component state
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  // Fetch analysis data when component mounts or userId changes
+  // Fetch analysis data when component mounts
   useEffect(() => {
     fetchAnalysis()
-  }, [userId])
+  }, [])
 
   /**
-   * Fetches full analysis data from the AI service.
+   * Fetches full analysis data from the finance insights API.
    * Handles loading state and error display.
    */
   const fetchAnalysis = async () => {
@@ -169,14 +170,8 @@ export function AIInsights({ userId }: AIInsightsProps) {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`${AI_SERVICE_URL}/api/analytics/full-analysis/${userId}`)
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch analysis')
-      }
-
-      const data = await response.json()
-      setAnalysis(data)
+      const response = await api.get<AnalysisData>('/finance/insights/full-analysis')
+      setAnalysis(response.data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load insights')
     } finally {
@@ -247,7 +242,7 @@ export function AIInsights({ userId }: AIInsightsProps) {
           <div>
             <h3 className="font-medium">AI Insights Unavailable</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {error}. Make sure the AI service is running on port 8000.
+              {error}. Please try again later.
             </p>
           </div>
         </div>
@@ -299,6 +294,13 @@ export function AIInsights({ userId }: AIInsightsProps) {
             <div className="text-xs text-purple-200">Alerts</div>
           </div>
         </div>
+
+        {/* AI Narrative Insight */}
+        {analysis.narrative && (
+          <div className="mt-4 p-3 bg-white/10 rounded-lg">
+            <p className="text-sm text-purple-50 whitespace-pre-line">{analysis.narrative}</p>
+          </div>
+        )}
       </div>
 
       {/* Top Recommendations Section */}
