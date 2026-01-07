@@ -87,10 +87,10 @@ export default function HouseGoalDetail() {
       // Parallel fetch with catch handlers for optional endpoints
       // Summary, properties, and provider status may not exist for all goals
       const [goalRes, summaryRes, propertiesRes, statusRes] = await Promise.all([
-        api.get(`/goals/${id}`),
-        api.get(`/goals/${id}/house/summary`).catch(() => ({ data: null })),
-        api.get(`/goals/${id}/properties`).catch(() => ({ data: [] })),
-        api.get('/house/providers/status').catch(() => ({ data: null })),
+        api.get(`/finance/goals/${id}`),
+        api.get(`/finance/goals/${id}/house/summary`).catch(() => ({ data: null })),
+        api.get(`/finance/goals/${id}/properties`).catch(() => ({ data: [] })),
+        api.get('/finance/house/providers/status').catch(() => ({ data: null })),
       ])
 
       // Redirect non-house goals back to goals list
@@ -125,7 +125,7 @@ export default function HouseGoalDetail() {
     if (!id) return
 
     try {
-      await api.put(`/goals/${id}/properties/${propertyId}`, { isFavorite: !isFavorite })
+      await api.put(`/finance/goals/${id}/properties/${propertyId}`, { isFavorite: !isFavorite })
       // Optimistic update: toggle favorite in local state
       setSavedProperties((prev) =>
         prev.map((p) => (p.id === propertyId ? { ...p, isFavorite: !isFavorite } : p))
@@ -143,7 +143,7 @@ export default function HouseGoalDetail() {
     if (!id) return
 
     try {
-      await api.delete(`/goals/${id}/properties/${propertyId}`)
+      await api.delete(`/finance/goals/${id}/properties/${propertyId}`)
       // Optimistic update: remove from local state
       setSavedProperties((prev) => prev.filter((p) => p.id !== propertyId))
     } catch (err) {

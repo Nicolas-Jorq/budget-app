@@ -88,10 +88,10 @@ export default function BankStatements() {
     try {
       // Parallel fetch for documents, accounts, and AI providers
       const [docsRes, accountsRes, providersRes] = await Promise.all([
-        api.get('/documents'),
-        api.get('/bank-accounts'),
+        api.get('/finance/documents'),
+        api.get('/finance/bank-accounts'),
         // Providers endpoint may not exist in all deployments
-        api.get('/documents/providers').catch(() => ({ data: { providers: [] } })),
+        api.get('/finance/documents/providers').catch(() => ({ data: { providers: [] } })),
       ])
       setDocuments(docsRes.data)
       setBankAccounts(accountsRes.data)
@@ -139,7 +139,7 @@ export default function BankStatements() {
         formData.append('bankAccountId', selectedAccount)
       }
 
-      const uploadRes = await api.post('/documents/upload', formData, {
+      const uploadRes = await api.post('/finance/documents/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
@@ -149,7 +149,7 @@ export default function BankStatements() {
       setUploadState('processing')
       setUploadProgress('Processing with AI... This may take a minute.')
 
-      const processRes = await api.post(`/documents/${documentId}/process`, {
+      const processRes = await api.post(`/finance/documents/${documentId}/process`, {
         llmProvider: selectedProvider || undefined,
       })
 
@@ -183,7 +183,7 @@ export default function BankStatements() {
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await api.post('/bank-accounts', newAccount)
+      await api.post('/finance/bank-accounts', newAccount)
       await fetchData()
       setShowAddAccount(false)
       // Reset form to default values
@@ -223,7 +223,7 @@ export default function BankStatements() {
         docs.map(d => d.id === docId ? { ...d, status: 'PROCESSING' as const } : d)
       )
 
-      await api.post(`/documents/${docId}/process`, {
+      await api.post(`/finance/documents/${docId}/process`, {
         llmProvider: selectedProvider || undefined,
       })
 
@@ -247,7 +247,7 @@ export default function BankStatements() {
     if (!confirm('Delete this document?')) return
 
     try {
-      await api.delete(`/documents/${docId}`)
+      await api.delete(`/finance/documents/${docId}`)
       await fetchData()
     } catch (error: any) {
       alert(error.response?.data?.message || 'Delete failed')

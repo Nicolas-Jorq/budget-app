@@ -54,9 +54,9 @@ export default function CategoryForm({ category, onClose, onSuccess }: CategoryF
       const data = { name, type, color }
 
       if (category) {
-        await api.put(`/categories/${category.id}`, data)
+        await api.put(`/finance/categories/${category.id}`, data)
       } else {
-        await api.post('/categories', data)
+        await api.post('/finance/categories', data)
       }
 
       onSuccess()

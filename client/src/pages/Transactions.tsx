@@ -51,7 +51,7 @@ export default function Transactions() {
    */
   const fetchTransactions = async () => {
     try {
-      const response = await api.get('/transactions')
+      const response = await api.get('/finance/transactions')
       setTransactions(response.data)
     } catch (error) {
       console.error('Failed to fetch transactions:', error)
@@ -84,7 +84,7 @@ export default function Transactions() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return
     try {
-      await api.delete(`/transactions/${id}`)
+      await api.delete(`/finance/transactions/${id}`)
       // Optimistic update: remove from local state
       setTransactions(transactions.filter((t) => t.id !== id))
     } catch (error) {

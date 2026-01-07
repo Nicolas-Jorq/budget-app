@@ -64,7 +64,7 @@ export default function Goals() {
    */
   const fetchGoals = async () => {
     try {
-      const response = await api.get('/goals')
+      const response = await api.get('/finance/goals')
       setGoals(response.data)
     } catch (error) {
       console.error('Failed to fetch goals:', error)
@@ -96,7 +96,7 @@ export default function Goals() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this goal? All contributions will be lost.')) return
     try {
-      await api.delete(`/goals/${id}`)
+      await api.delete(`/finance/goals/${id}`)
       setGoals(goals.filter((g) => g.id !== id))
     } catch (error) {
       console.error('Failed to delete goal:', error)

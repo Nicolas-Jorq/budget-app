@@ -42,7 +42,7 @@ export default function Categories() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this category?')) return
     try {
-      await api.delete(`/categories/${id}`)
+      await api.delete(`/finance/categories/${id}`)
       refetch()
     } catch (error) {
       console.error('Failed to delete category:', error)
@@ -54,7 +54,7 @@ export default function Categories() {
     if (!confirm('This will delete all your categories and restore the defaults. Continue?')) return
     setIsResetting(true)
     try {
-      await api.post('/categories/reset')
+      await api.post('/finance/categories/reset')
       refetch()
     } catch (error) {
       console.error('Failed to reset categories:', error)

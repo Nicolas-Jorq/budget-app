@@ -60,7 +60,7 @@ export function useCategories(options?: UseCategoriesOptions): UseCategoriesRetu
 
     try {
       const params = options?.type ? `?type=${options.type}` : ''
-      const response = await api.get(`/categories${params}`)
+      const response = await api.get(`/finance/categories${params}`)
       setCategories(response.data)
     } catch (err) {
       console.error('Failed to fetch categories:', err)

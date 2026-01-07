@@ -38,7 +38,7 @@ export default function RecurringTransactions() {
   /** Fetches all recurring transactions */
   const fetchRecurring = async () => {
     try {
-      const response = await api.get('/recurring')
+      const response = await api.get('/finance/recurring')
       setRecurring(response.data)
     } catch (error) {
       console.error('Failed to fetch recurring transactions:', error)
@@ -48,7 +48,7 @@ export default function RecurringTransactions() {
   /** Fetches upcoming due transactions */
   const fetchUpcoming = async () => {
     try {
-      const response = await api.get('/recurring/upcoming?days=14')
+      const response = await api.get('/finance/recurring/upcoming?days=14')
       setUpcoming(response.data)
     } catch (error) {
       console.error('Failed to fetch upcoming:', error)
@@ -80,7 +80,7 @@ export default function RecurringTransactions() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this recurring transaction?')) return
     try {
-      await api.delete(`/recurring/${id}`)
+      await api.delete(`/finance/recurring/${id}`)
       setRecurring(recurring.filter((r) => r.id !== id))
       setUpcoming(upcoming.filter((u) => u.recurring.id !== id))
     } catch (error) {
@@ -91,7 +91,7 @@ export default function RecurringTransactions() {
   /** Skips the next occurrence */
   const handleSkip = async (id: string) => {
     try {
-      const response = await api.post(`/recurring/${id}/skip`)
+      const response = await api.post(`/finance/recurring/${id}/skip`)
       setRecurring(recurring.map((r) => (r.id === id ? response.data : r)))
       await fetchUpcoming()
     } catch (error) {
@@ -104,7 +104,7 @@ export default function RecurringTransactions() {
     setIsProcessing(true)
     setProcessResult(null)
     try {
-      const response = await api.post('/recurring/process')
+      const response = await api.post('/finance/recurring/process')
       setProcessResult({
         count: response.data.transactions.length,
         transactions: response.data.transactions,

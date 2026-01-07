@@ -174,12 +174,12 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
 
       if (goal) {
         // Update existing goal via PUT request
-        await api.put(`/goals/${goal.id}`, data)
+        await api.put(`/finance/goals/${goal.id}`, data)
 
         // Update house goal configuration if editing a house goal with price
         if (type === 'HOUSE' && targetPrice) {
           try {
-            await api.put(`/goals/${goal.id}/house`, {
+            await api.put(`/finance/goals/${goal.id}/house`, {
               targetPrice: parseFloat(targetPrice),
               targetLocation: targetLocation || null,
               targetBedrooms: targetBedrooms ? parseInt(targetBedrooms, 10) : null,
@@ -193,17 +193,17 @@ export default function GoalForm({ goal, onClose, onSuccess }: GoalFormProps) {
         }
       } else {
         // Create new goal via POST request
-        const response = await api.post('/goals', data)
+        const response = await api.post('/finance/goals', data)
         createdGoal = response.data
 
         // Create default milestones for new baby goals if option is selected
         if (type === 'BABY' && createDefaultMilestones && createdGoal?.id) {
-          await api.post(`/goals/${createdGoal.id}/milestones/defaults`)
+          await api.post(`/finance/goals/${createdGoal.id}/milestones/defaults`)
         }
 
         // Create house goal configuration for new house goals
         if (type === 'HOUSE' && createdGoal?.id && targetPrice) {
-          await api.post(`/goals/${createdGoal.id}/house`, {
+          await api.post(`/finance/goals/${createdGoal.id}/house`, {
             targetPrice: parseFloat(targetPrice),
             targetLocation: targetLocation || null,
             targetBedrooms: targetBedrooms ? parseInt(targetBedrooms, 10) : null,

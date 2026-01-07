@@ -77,7 +77,7 @@ export default function ContributionForm({ goal, onClose, onSuccess }: Contribut
 
     try {
       // Make API request to add contribution to the goal
-      await api.post(`/goals/${goal.id}/contributions`, {
+      await api.post(`/finance/goals/${goal.id}/contributions`, {
         amount: parseFloat(amount),
         // Only include note if provided (converts empty string to undefined)
         note: note || undefined,

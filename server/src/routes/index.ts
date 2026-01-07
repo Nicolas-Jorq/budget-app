@@ -6,10 +6,10 @@
  * Route Structure:
  * - /api/auth/* - Authentication (module-agnostic)
  * - /api/modules/* - Module management
- * - /api/finance/* - Finance module (new namespaced routes)
- *
- * Legacy routes (for backward compatibility):
- * - /api/budgets, /api/transactions, etc. still work but map to finance module
+ * - /api/finance/* - Finance module
+ * - /api/health/* - Health module
+ * - /api/tasks/* - Tasks module
+ * - /api/life-goals/* - Life Goals module
  *
  * @module routes
  */
@@ -27,20 +27,9 @@ import { healthRoutes } from '../modules/health/index.js'
 import { tasksRoutes } from '../modules/tasks/index.js'
 import { lifeGoalsRoutes } from '../modules/life-goals/index.js'
 
-// Legacy route imports (for backward compatibility)
-import budgetRoutes from './budgets.js'
-import transactionRoutes from './transactions.js'
-import dashboardRoutes from './dashboard.js'
-import goalsRoutes from './goals.js'
-import houseRoutes from './house.js'
-import bankAccountRoutes from './bank-accounts.js'
-import documentRoutes from './documents.js'
-import recurringTransactionRoutes from './recurring-transactions.js'
-import categoriesRoutes from './categories.js'
-
 const router = Router()
 
-// API root - updated to reflect module structure
+// API root - shows available endpoints
 router.get('/', (_req, res) => {
   res.json({
     message: `${APP_CONFIG.name} API`,
@@ -67,12 +56,9 @@ router.get('/', (_req, res) => {
         documents: '/api/finance/documents',
         dashboard: '/api/finance/dashboard',
       },
-      // Legacy endpoints (deprecated, use /api/finance/* instead)
-      legacy: {
-        budgets: '/api/budgets',
-        transactions: '/api/transactions',
-        // ... other legacy routes
-      },
+      health: '/api/health',
+      tasks: '/api/tasks',
+      lifeGoals: '/api/life-goals',
     },
   })
 })
@@ -99,21 +85,5 @@ router.use('/tasks', tasksRoutes)
 
 // Life Goals module - all life goals routes under /api/life-goals/*
 router.use('/life-goals', lifeGoalsRoutes)
-
-// ==========================================
-// Legacy Routes (Backward Compatibility)
-// ==========================================
-// These routes are deprecated but maintained for backward compatibility.
-// New code should use /api/finance/* routes.
-
-router.use('/budgets', budgetRoutes)
-router.use('/transactions', transactionRoutes)
-router.use('/recurring', recurringTransactionRoutes)
-router.use('/dashboard', dashboardRoutes)
-router.use('/goals', goalsRoutes)
-router.use('/house', houseRoutes)
-router.use('/bank-accounts', bankAccountRoutes)
-router.use('/documents', documentRoutes)
-router.use('/categories', categoriesRoutes)
 
 export default router

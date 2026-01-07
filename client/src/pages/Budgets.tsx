@@ -53,7 +53,7 @@ export default function Budgets() {
    */
   const fetchBudgets = async () => {
     try {
-      const response = await api.get('/budgets')
+      const response = await api.get('/finance/budgets')
       setBudgets(response.data)
     } catch (error) {
       console.error('Failed to fetch budgets:', error)
@@ -86,7 +86,7 @@ export default function Budgets() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this budget?')) return
     try {
-      await api.delete(`/budgets/${id}`)
+      await api.delete(`/finance/budgets/${id}`)
       // Optimistic update: remove from local state without refetching
       setBudgets(budgets.filter((b) => b.id !== id))
     } catch (error) {

@@ -38,9 +38,9 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [statsRes, chartsRes, goalsRes] = await Promise.all([
-          api.get('/dashboard/stats'),
-          api.get('/dashboard/charts'),
-          api.get('/goals/summary'),
+          api.get('/finance/dashboard/stats'),
+          api.get('/finance/dashboard/charts'),
+          api.get('/finance/goals/summary'),
         ])
         setStats(statsRes.data)
         setChartData(chartsRes.data)

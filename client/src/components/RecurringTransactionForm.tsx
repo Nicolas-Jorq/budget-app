@@ -90,7 +90,7 @@ export default function RecurringTransactionForm({
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
-        const response = await api.get('/budgets')
+        const response = await api.get('/finance/budgets')
         setBudgets(response.data)
       } catch (err) {
         console.error('Failed to fetch budgets:', err)
@@ -143,9 +143,9 @@ export default function RecurringTransactionForm({
       }
 
       if (recurring) {
-        await api.put(`/recurring/${recurring.id}`, data)
+        await api.put(`/finance/recurring/${recurring.id}`, data)
       } else {
-        await api.post('/recurring', data)
+        await api.post('/finance/recurring', data)
       }
 
       onSuccess()

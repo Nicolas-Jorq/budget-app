@@ -101,7 +101,7 @@ export default function TransactionForm({ transaction, onClose, onSuccess }: Tra
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
-        const response = await api.get('/budgets')
+        const response = await api.get('/finance/budgets')
         setBudgets(response.data)
       } catch (err) {
         // Silently log error - budgets are optional for transactions
@@ -140,10 +140,10 @@ export default function TransactionForm({ transaction, onClose, onSuccess }: Tra
       // Determine whether to create or update based on existing transaction
       if (transaction) {
         // Update existing transaction via PUT request
-        await api.put(`/transactions/${transaction.id}`, data)
+        await api.put(`/finance/transactions/${transaction.id}`, data)
       } else {
         // Create new transaction via POST request
-        await api.post('/transactions', data)
+        await api.post('/finance/transactions', data)
       }
 
       // Notify parent component of successful operation

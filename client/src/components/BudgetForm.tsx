@@ -94,10 +94,10 @@ export default function BudgetForm({ budget, onClose, onSuccess }: BudgetFormPro
       // Determine whether to create or update based on existing budget
       if (budget) {
         // Update existing budget via PUT request
-        await api.put(`/budgets/${budget.id}`, data)
+        await api.put(`/finance/budgets/${budget.id}`, data)
       } else {
         // Create new budget via POST request
-        await api.post('/budgets', data)
+        await api.post('/finance/budgets', data)
       }
 
       // Notify parent component of successful operation

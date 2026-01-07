@@ -79,7 +79,7 @@ export default function MortgageCalculator({
       const interestRateNum = parseFloat(interestRate)
       const loanTermYearsNum = parseInt(loanTermYears, 10)
 
-      const response = await api.post('/house/mortgage/calculate', {
+      const response = await api.post('/finance/house/mortgage/calculate', {
         homePrice: homePriceNum,
         downPaymentPct: downPaymentPctNum,
         interestRate: interestRateNum,
