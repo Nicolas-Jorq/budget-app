@@ -21,6 +21,7 @@ import { APP_CONFIG } from '../config/app.js'
 import authRoutes from './auth.js'
 import notificationRoutes from './notifications.js'
 import unifiedDashboardRoutes from './unified-dashboard.js'
+import exportRoutes from './export.js'
 
 // Module system
 import { modulesRoutes } from '../modules/core/index.js'
@@ -52,6 +53,13 @@ router.get('/', (_req, res) => {
         quickStats: '/api/dashboard/quick-stats',
         modules: '/api/dashboard/modules',
       },
+      export: {
+        options: '/api/export',
+        transactions: '/api/export/transactions',
+        budgets: '/api/export/budgets',
+        goals: '/api/export/goals',
+        all: '/api/export/all',
+      },
       finance: {
         root: '/api/finance',
         budgets: '/api/finance/budgets',
@@ -79,6 +87,7 @@ router.use('/auth', authRoutes)
 router.use('/modules', modulesRoutes)
 router.use('/notifications', notificationRoutes)
 router.use('/dashboard', unifiedDashboardRoutes)
+router.use('/export', exportRoutes)
 
 // ==========================================
 // Module Routes (Namespaced)
